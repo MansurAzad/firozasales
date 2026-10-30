@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793402197198,
+      "tag": "0000_hisab_init",
+      "breakpoints": true
+    }
+  ]
 }

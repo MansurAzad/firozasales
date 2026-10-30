@@ -14,16 +14,527 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      deposits: {
+        Row: {
+          amount: number
+          deposited_at: string
+          id: string
+          note: string
+          salesman_id: string
+          settlement_id: string | null
+        }
+        Insert: {
+          amount: number
+          deposited_at?: string
+          id?: string
+          note?: string
+          salesman_id: string
+          settlement_id?: string | null
+        }
+        Update: {
+          amount?: number
+          deposited_at?: string
+          id?: string
+          note?: string
+          salesman_id?: string
+          settlement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposits_salesman_id_fkey"
+            columns: ["salesman_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposits_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imei_units: {
+        Row: {
+          created_at: string
+          current_salesman: string | null
+          id: string
+          imei: string
+          issued_at: string | null
+          product_id: string
+          returned_at: string | null
+          sold_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          current_salesman?: string | null
+          id?: string
+          imei: string
+          issued_at?: string | null
+          product_id: string
+          returned_at?: string | null
+          sold_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          current_salesman?: string | null
+          id?: string
+          imei?: string
+          issued_at?: string | null
+          product_id?: string
+          returned_at?: string | null
+          sold_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imei_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          model: string
+          name: string
+          price: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model?: string
+          name: string
+          price?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string
+          id: string
+          is_active?: boolean
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      retailer_payments: {
+        Row: {
+          amount: number
+          id: string
+          note: string
+          paid_at: string
+          retailer_id: string
+          salesman_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          note?: string
+          paid_at?: string
+          retailer_id: string
+          salesman_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          note?: string
+          paid_at?: string
+          retailer_id?: string
+          salesman_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_payments_retailer_id_fkey"
+            columns: ["retailer_id"]
+            isOneToOne: false
+            referencedRelation: "retailers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retailer_payments_salesman_id_fkey"
+            columns: ["salesman_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retailers: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
+      returns: {
+        Row: {
+          id: string
+          imei_unit_id: string | null
+          is_damaged: boolean
+          product_id: string
+          quantity: number
+          returned_at: string
+          salesman_id: string
+          settlement_id: string | null
+        }
+        Insert: {
+          id?: string
+          imei_unit_id?: string | null
+          is_damaged?: boolean
+          product_id: string
+          quantity?: number
+          returned_at?: string
+          salesman_id: string
+          settlement_id?: string | null
+        }
+        Update: {
+          id?: string
+          imei_unit_id?: string | null
+          is_damaged?: boolean
+          product_id?: string
+          quantity?: number
+          returned_at?: string
+          salesman_id?: string
+          settlement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_imei_unit_id_fkey"
+            columns: ["imei_unit_id"]
+            isOneToOne: false
+            referencedRelation: "imei_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_salesman_id_fkey"
+            columns: ["salesman_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_items: {
+        Row: {
+          id: string
+          imei_unit_id: string | null
+          product_id: string
+          quantity: number
+          sale_id: string
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          imei_unit_id?: string | null
+          product_id: string
+          quantity?: number
+          sale_id: string
+          unit_price?: number
+        }
+        Update: {
+          id?: string
+          imei_unit_id?: string | null
+          product_id?: string
+          quantity?: number
+          sale_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_imei_unit_id_fkey"
+            columns: ["imei_unit_id"]
+            isOneToOne: false
+            referencedRelation: "imei_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          id: string
+          note: string
+          paid_amount: number
+          retailer_id: string
+          salesman_id: string
+          sold_at: string
+          total_amount: number
+        }
+        Insert: {
+          id?: string
+          note?: string
+          paid_amount?: number
+          retailer_id: string
+          salesman_id: string
+          sold_at?: string
+          total_amount?: number
+        }
+        Update: {
+          id?: string
+          note?: string
+          paid_amount?: number
+          retailer_id?: string
+          salesman_id?: string
+          sold_at?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_retailer_id_fkey"
+            columns: ["retailer_id"]
+            isOneToOne: false
+            referencedRelation: "retailers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_salesman_id_fkey"
+            columns: ["salesman_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlements: {
+        Row: {
+          created_at: string
+          id: string
+          note: string
+          salesman_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string
+          salesman_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string
+          salesman_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_salesman_id_fkey"
+            columns: ["salesman_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_issue_items: {
+        Row: {
+          id: string
+          imei_unit_id: string | null
+          issue_id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          imei_unit_id?: string | null
+          issue_id: string
+          product_id: string
+          quantity?: number
+        }
+        Update: {
+          id?: string
+          imei_unit_id?: string | null
+          issue_id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_issue_items_imei_unit_id_fkey"
+            columns: ["imei_unit_id"]
+            isOneToOne: false
+            referencedRelation: "imei_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_issue_items_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "stock_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_issue_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_issues: {
+        Row: {
+          id: string
+          issued_at: string
+          issued_by: string
+          note: string
+          salesman_id: string
+        }
+        Insert: {
+          id?: string
+          issued_at?: string
+          issued_by: string
+          note?: string
+          salesman_id: string
+        }
+        Update: {
+          id?: string
+          issued_at?: string
+          issued_by?: string
+          note?: string
+          salesman_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_issues_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_issues_salesman_id_fkey"
+            columns: ["salesman_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      issue_imei: {
+        Args: { p_imei: string; p_issue_id: string }
+        Returns: string
+      }
+      return_imei: {
+        Args: { p_imei: string; p_return_id: string }
+        Returns: string
+      }
+      sell_imei: {
+        Args: { p_imei: string; p_sale_id: string }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "salesman"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +661,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "salesman"],
+    },
   },
 } as const
