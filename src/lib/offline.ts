@@ -67,7 +67,7 @@ export async function catalogWrite(table: CatalogTable, action: 'insert'|'update
   const prepared = rows.map(row => ({ ...row, id: row['id'] ?? crypto.randomUUID() }));
   const payload = { table, action, rows: prepared, units };
   await enqueue('catalog', payload, crypto.randomUUID());
-  if (!isOffline()) await syncOffline();
+  if (!isOffline()) { try { await syncOffline(); } catch { /* Remains visibly queued; never lose an accepted local entry. */ } }
   return prepared;
 }
 async function sendCatalog(entry: LocalEntry) {

@@ -1,4 +1,5 @@
 import type { Report } from './reports';
+import { currentLocalAccount } from './offline';
 
 export async function createExcelFile(report: Report, filename: string): Promise<File> {
   const { Workbook } = await import('exceljs');
@@ -7,7 +8,8 @@ export async function createExcelFile(report: Report, filename: string): Promise
   const sheet = workbook.addWorksheet('Report');
   sheet.addRow(['FIROZA ENTERPRISE']);
   sheet.addRow([report.title]);
-  sheet.addRow([]);
+  const account = await currentLocalAccount();
+  sheet.addRow(account?.entries.length ? ['PROVISIONAL / অনলাইনে যাচাই বাকি — Local entries included'] : []);
   sheet.addRow(report.columns);
   report.rows.forEach(row => sheet.addRow(row));
   if ('totals' in report && Array.isArray(report.totals)) {

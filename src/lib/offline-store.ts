@@ -29,6 +29,7 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
     const items = (Array.isArray(p['items']) ? p['items'] : []) as Record<string, Json | undefined>[];
     const sid = entry.kind === 'issue' ? String(p['salesman_id']) : actor.userId;
     if (entry.kind === 'catalog') {
+      if (!actor.isAdmin || !actor.isActive) throw new Error('Admin required');
       const table = String(p['table']), action = String(p['action']), rows = (p['rows'] ?? []) as Record<string, Json>[];
       if (table !== 'products' && table !== 'retailers' && table !== 'imeiUnits') throw new Error('Invalid local table');
       const target = d[table] as unknown as Record<string, Json>[];
