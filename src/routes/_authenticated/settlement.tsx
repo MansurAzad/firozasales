@@ -13,6 +13,7 @@ import {
   fetchAdminData,
   fetchSalesmanData,
   perProductStock,
+  issuedBySalesman,
   summarizeSalesman,
 } from "@/lib/hisab";
 
@@ -97,45 +98,6 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     },
   });
 
-  const d = data.data;
-  if (data.isLoading || !d) {
-    return (
-      <AppShell title={t("settlement_title")}>
-        <p className="text-sm text-muted-foreground">{t("loading")}</p>
-      </AppShell>
-    );
-  }
-
-  const summary = summarizeSalesman(d);
-  const stock = perProductStock(d);
-  const pendingProducts = d.products
-    .map((p) => {
-      const row = stock.get(p.id);
-      const remaining = row ? row.issued - row.sold - row.returned : 0;
-      return { ...p, remaining };
-    })
-    .filter((p) => p.remaining > 0);
-
-  const scanProduct = pendingProducts.find((p) => p.id === scanProductId);
-
-  const checkReturnImei = async (code: string) => {
-    const { data: unit } = await supabase
-      .from("imei_units")
-      .select("id, product_id, status, current_salesman")
-      .eq("imei", code)
-      .maybeSingle();
-    if (!unit || unit.status !== "with_salesman" || unit.current_salesman !== userId) {
-      return { ok: false, message: t("imei_return_err") };
-    }
-    if (scanProduct && unit.product_id !== scanProduct.id) {
-      return { ok: false, message: t("imei_return_err") };
-    }
-    if (returns.some((r) => r.units.some((u) => u.id === unit.id))) {
-      return { ok: false, message: t("imei_duplicate") };
-    }
-    return { ok: true, message: t("imei_return_ok") };
-  };
-
   const submit = useMutation({
     mutationFn: async () => {
       if (returns.length === 0 && deposits.length === 0) throw new Error(t("noData"));
@@ -202,6 +164,45 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const d = data.data;
+  if (data.isLoading || !d) {
+    return (
+      <AppShell title={t("settlement_title")}>
+        <p className="text-sm text-muted-foreground">{t("loading")}</p>
+      </AppShell>
+    );
+  }
+
+  const summary = summarizeSalesman(d);
+  const stock = perProductStock(d);
+  const pendingProducts = d.products
+    .map((p) => {
+      const row = stock.get(p.id);
+      const remaining = row ? row.issued - row.sold - row.returned : 0;
+      return { ...p, remaining };
+    })
+    .filter((p) => p.remaining > 0);
+
+  const scanProduct = pendingProducts.find((p) => p.id === scanProductId);
+
+  const checkReturnImei = async (code: string) => {
+    const { data: unit } = await supabase
+      .from("imei_units")
+      .select("id, product_id, status, current_salesman")
+      .eq("imei", code)
+      .maybeSingle();
+    if (!unit || unit.status !== "with_salesman" || unit.current_salesman !== userId) {
+      return { ok: false, message: t("imei_return_err") };
+    }
+    if (scanProduct && unit.product_id !== scanProduct.id) {
+      return { ok: false, message: t("imei_return_err") };
+    }
+    if (returns.some((r) => r.units.some((u) => u.id === unit.id))) {
+      return { ok: false, message: t("imei_duplicate") };
+    }
+    return { ok: true, message: t("imei_return_ok") };
+  };
 
   const h = history.data;
 
@@ -277,7 +278,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
                         },
                       ];
                     });
-                  })
+                  })}
             />
           ) : (
             <AddQtyReturn
@@ -493,9 +494,7 @@ function AdminSettlement() {
               sales.reduce((a, x) => a + toNumber(x.paid_amount), 0) +
               payments.reduce((a, x) => a + toNumber(x.amount), 0);
             const dep = deposits.reduce((a, x) => a + toNumber(x.amount), 0);
-            const withStock = d.imeiUnits.filter(
-              (u) => u.status === "with_salesman" && u.current_salesman === s.id,
-            ).length;
+            const withStock = issuedBySalesman(d).get(s.id) ?? 0;
             return (
               <div key={s.id} className="row">
                 <div>

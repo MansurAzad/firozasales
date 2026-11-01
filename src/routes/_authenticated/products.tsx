@@ -62,7 +62,7 @@ interface ProductRow {
   id: string;
   name: string;
   model: string;
-  price: string;
+  price: number;
   category: string;
   is_active: boolean;
 }
@@ -205,12 +205,12 @@ function ProductList({
   onChange: () => void;
 }) {
   const { t } = useLang();
-  const [editing, setEditing] = useState<ProductRow | null>(null);
+  const [editing, setEditing] = useState<(Omit<ProductRow, "price"> & { price: string }) | null>(null);
   const [addImeiFor, setAddImeiFor] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const update = useMutation({
-    mutationFn: async (row: ProductRow) => {
+    mutationFn: async (row: Omit<ProductRow, "price"> & { price: string }) => {
       const { error } = await supabase
         .from("products")
         .update({ name: row.name, model: row.model, price: Number(row.price) })
@@ -327,7 +327,7 @@ function ProductList({
                 </div>
                 {isAdmin ? (
                   <div className="flex shrink-0 gap-1">
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing(p)}>
+                    <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing({ ...p, price: String(p.price) } as never)}>
                       {t("edit")}
                     </button>
                     {p.category === "smartphone" ? (

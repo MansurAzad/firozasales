@@ -4,7 +4,6 @@ import {
   checkTransition,
   isPlausibleImei,
   normalizeImei,
-  type ImeiStatus,
 } from "./imei";
 
 describe("IMEI normalization", () => {
@@ -13,9 +12,9 @@ describe("IMEI normalization", () => {
   });
 
   it("accepts 14–16 digit codes and rejects anything else", () => {
-    expect(isPlausibleImei("35678910112345")).toBe(true); // 15
-    expect(isPlausibleImei("3567891011234")).toBe(true); // 14
-    expect(isPlausibleImei("356789101123456")).toBe(true); // 16
+    expect(isPlausibleImei("35678910112345")).toBe(true); // 14
+    expect(isPlausibleImei("356789101123450")).toBe(true); // 15
+    expect(isPlausibleImei("3567891011234501")).toBe(true); // 16
     expect(isPlausibleImei("123")).toBe(false);
     expect(isPlausibleImei("")).toBe(false);
   });
@@ -56,10 +55,9 @@ describe("IMEI status flow (mirrors database functions)", () => {
   });
 
   it("full lifecycle: issue → sell → return path stays closed for sold units", () => {
-    const statuses: ImeiStatus[] = ["in_dealer_stock", "with_salesman", "sold"];
-    expect(checkTransition("issue", statuses[0]).ok).toBe(true);
-    expect(checkTransition("sell", statuses[1]).ok).toBe(true);
+    expect(checkTransition("issue", "in_dealer_stock").ok).toBe(true);
+    expect(checkTransition("sell", "with_salesman").ok).toBe(true);
     // A sold unit can never be returned through the scanner flow.
-    expect(checkTransition("return", statuses[2]).ok).toBe(false);
+    expect(checkTransition("return", "sold").ok).toBe(false);
   });
 });

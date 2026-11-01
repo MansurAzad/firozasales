@@ -1,19 +1,39 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toNumber } from "./money";
 
+export function sumBy<T>(rows: T[], f: (row: T) => number): number {
+  return rows.reduce((acc, row) => acc + f(row), 0);
+}
+
 export interface AdminData {
   salesmen: { id: string; full_name: string; is_active: boolean }[];
-  products: { id: string; name: string; model: string; price: string; category: string; is_active: boolean }[];
+  products: { id: string; name: string; model: string; price: number; category: string; is_active: boolean }[];
   imeiUnits: { id: string; product_id: string; imei: string; status: string; current_salesman: string | null }[];
   retailers: { id: string; name: string; is_active: boolean }[];
-  sales: { id: string; salesman_id: string; retailer_id: string; total_amount: string; paid_amount: string; sold_at: string }[];
-  payments: { id: string; salesman_id: string; retailer_id: string; amount: string; paid_at: string }[];
-  deposits: { id: string; salesman_id: string; amount: string; deposited_at: string }[];
+  sales: { id: string; salesman_id: string; retailer_id: string; total_amount: number; paid_amount: number; sold_at: string }[];
+  payments: { id: string; salesman_id: string; retailer_id: string; amount: number; paid_at: string }[];
+  deposits: { id: string; salesman_id: string; amount: number; deposited_at: string }[];
+  stockIssues: { id: string; salesman_id: string }[];
+  issueItems: { id: string; issue_id: string; product_id: string; quantity: number }[];
+  saleItems: { id: string; sale_id: string; product_id: string; quantity: number }[];
+  returns: { id: string; salesman_id: string; product_id: string; quantity: number }[];
+}
+
+/** Pieces issued to each salesman, across all stock issues. */
+export function issuedBySalesman(d: AdminData): Map<string, number> {
+  const salesmanOfIssue = new Map(d.stockIssues.map((i) => [i.id, i.salesman_id]));
+  const map = new Map<string, number>();
+  for (const item of d.issueItems) {
+    const sid = salesmanOfIssue.get(item.issue_id);
+    if (!sid) continue;
+    map.set(sid, (map.get(sid) ?? 0) + item.quantity);
+  }
+  return map;
 }
 
 /** Everything the admin dashboards need, read once and aggregated client-side. */
 export async function fetchAdminData(): Promise<AdminData> {
-  const [profilesRes, rolesRes, productsRes, imeiRes, retailersRes, salesRes, paymentsRes, depositsRes] =
+  const [profilesRes, rolesRes, productsRes, imeiRes, retailersRes, salesRes, paymentsRes, depositsRes, issuesRes, issueItemsRes, saleItemsRes, returnsRes] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name, is_active"),
       supabase.from("user_roles").select("user_id, role").eq("role", "salesman"),
@@ -23,6 +43,10 @@ export async function fetchAdminData(): Promise<AdminData> {
       supabase.from("sales").select("id, salesman_id, retailer_id, total_amount, paid_amount, sold_at"),
       supabase.from("retailer_payments").select("id, salesman_id, retailer_id, amount, paid_at"),
       supabase.from("deposits").select("id, salesman_id, amount, deposited_at"),
+      supabase.from("stock_issues").select("id, salesman_id"),
+      supabase.from("stock_issue_items").select("id, issue_id, product_id, quantity"),
+      supabase.from("sale_items").select("id, sale_id, product_id, quantity"),
+      supabase.from("returns").select("id, salesman_id, product_id, quantity"),
     ]);
 
   const salesmanIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
@@ -34,22 +58,21 @@ export async function fetchAdminData(): Promise<AdminData> {
     sales: salesRes.data ?? [],
     payments: paymentsRes.data ?? [],
     deposits: depositsRes.data ?? [],
+    stockIssues: issuesRes.data ?? [],
+    issueItems: issueItemsRes.data ?? [],
+    saleItems: saleItemsRes.data ?? [],
+    returns: returnsRes.data ?? [],
   };
 }
 
-
-export function sumBy<T>(rows: T[], f: (row: T) => number): number {
-  return rows.reduce((acc, row) => acc + f(row), 0);
-}
-
 export interface SalesmanData {
-  products: { id: string; name: string; price: string; category: string }[];
+  products: { id: string; name: string; price: number; category: string }[];
   retailers: { id: string; name: string }[];
   sales: {
     id: string;
     retailer_id: string;
-    total_amount: string;
-    paid_amount: string;
+    total_amount: number;
+    paid_amount: number;
     sold_at: string;
   }[];
   saleItems: {
@@ -57,10 +80,10 @@ export interface SalesmanData {
     sale_id: string;
     product_id: string;
     quantity: number;
-    unit_price: string;
+    unit_price: number;
   }[];
-  payments: { id: string; retailer_id: string; amount: string; paid_at: string; note: string }[];
-  deposits: { id: string; settlement_id: string | null; amount: string; deposited_at: string; note: string }[];
+  payments: { id: string; retailer_id: string; amount: number; paid_at: string; note: string }[];
+  deposits: { id: string; settlement_id: string | null; amount: number; deposited_at: string; note: string }[];
   returns: {
     id: string;
     settlement_id: string | null;
@@ -77,7 +100,7 @@ export interface SalesmanData {
 
 /** All signed-in data for one salesman, used by dashboard and settlement. */
 export async function fetchSalesmanData(userId: string): Promise<SalesmanData> {
-  const [productsRes, retailersRes, salesRes, paymentsRes, depositsRes, returnsRes] =
+  const [productsRes, retailersRes, salesRes, paymentsRes, depositsRes, returnsRes, issuesRes] =
     await Promise.all([
       supabase.from("products").select("id, name, price, category").order("name"),
       supabase.from("retailers").select("id, name").order("name"),
@@ -102,17 +125,17 @@ export async function fetchSalesmanData(userId: string): Promise<SalesmanData> {
           "id, settlement_id, product_id, quantity, imei_unit_id, is_damaged, returned_at",
         )
         .eq("salesman_id", userId),
+      supabase
+        .from("stock_issues")
+        .select("id, issued_at")
+        .eq("salesman_id", userId)
+        .order("issued_at", { ascending: false }),
     ]);
 
   const issueIds = (issuesRes.data ?? []).map((r) => r.id);
   const saleIds = (salesRes.data ?? []).map((r) => r.id);
 
-  const [issuesRes2, issueItemsRes, saleItemsRes, imeiRes] = await Promise.all([
-    supabase
-      .from("stock_issues")
-      .select("id, issued_at")
-      .eq("salesman_id", userId)
-      .order("issued_at", { ascending: false }),
+  const [issueItemsRes, saleItemsRes, imeiRes] = await Promise.all([
     issueIds.length
       ? supabase
           .from("stock_issue_items")
@@ -139,7 +162,7 @@ export async function fetchSalesmanData(userId: string): Promise<SalesmanData> {
     payments: paymentsRes.data ?? [],
     deposits: depositsRes.data ?? [],
     returns: returnsRes.data ?? [],
-    issues: issuesRes2.data ?? [],
+    issues: issuesRes.data ?? [],
     issueItems: issueItemsRes.data ?? [],
     imeiUnits: imeiRes.data ?? [],
   };
