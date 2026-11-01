@@ -1,0 +1,204 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { AppShell } from "@/components/AppShell";
+import { useLang } from "@/lib/i18n";
+import { useMyRole } from "@/lib/role";
+import { useServerFn } from "@tanstack/react-start";
+import { createSalesmanAccount } from "@/lib/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
+
+export const Route = createFileRoute("/_authenticated/salesmen")({
+  head: () => ({
+    meta: [
+      { title: "Salesman — মোবাইল হিসাব" },
+      { name: "description", content: "Create and manage salesman accounts." },
+      { property: "og:title", content: "Salesman — মোবাইল হিসাব" },
+      { property: "og:description", content: "Create and manage salesman accounts." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: SalesmenPage,
+});
+
+function SalesmenPage() {
+  const { t } = useLang();
+  const role = useMyRole();
+  const queryClient = useQueryClient();
+
+  const list = useQuery({
+    queryKey: ["salesmen-list"],
+    queryFn: async () => {
+      const { data: roles, error } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "salesman");
+      if (error) throw error;
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (ids.length === 0) return [];
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, is_active, created_at")
+        .in("id", ids);
+      if (pErr) throw pErr;
+      return profiles ?? [];
+    },
+  });
+
+  if (role.isLoading) {
+    return (
+      <AppShell title={t("salesmen_title")}>
+        <p className="text-sm text-muted-foreground">{t("loading")}</p>
+      </AppShell>
+    );
+  }
+  if (!role.data?.isAdmin) {
+    return (
+      <AppShell title={t("salesmen_title")}>
+        <div className="card">
+          <p className="text-sm text-muted-foreground">{t("no_access")}</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell title={t("salesmen_title")}>
+      <h1 className="page-title mb-4">{t("salesmen_title")}</h1>
+      <AddSalesman
+        onDone={() => queryClient.invalidateQueries({ queryKey: ["salesmen-list"] })}
+      />
+      <SalesmanList
+        rows={list.data}
+        onChange={() => queryClient.invalidateQueries({ queryKey: ["salesmen-list"] })}
+      />
+    </AppShell>
+  );
+}
+
+function AddSalesman({ onDone }: { onDone: () => void }) {
+  const { t } = useLang();
+  const createFn = useServerFn(createSalesmanAccount);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const create = useMutation({
+    mutationFn: (input: { email: string; password: string; fullName: string }) =>
+      createFn({ data: input }),
+    onSuccess: () => {
+      toast.success(t("account_created"));
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setOpen(false);
+      onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!open) {
+    return (
+      <button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
+        + {t("add_salesman")}
+      </button>
+    );
+  }
+
+  return (
+    <div className="card mb-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          create.mutate({ email, password, fullName });
+        }}
+      >
+        <div className="field">
+          <label className="label" htmlFor="sm-name">{t("fullName")}</label>
+          <input id="sm-name" className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="sm-email">{t("email")}</label>
+          <input id="sm-email" type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="sm-pass">{t("password")}</label>
+          <input
+            id="sm-pass"
+            type="password"
+            className="input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            placeholder={t("password_hint")}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" className="btn-primary" disabled={create.isPending}>
+            {t("create_account")}
+          </button>
+          <button type="button" className="btn-outline" onClick={() => setOpen(false)}>
+            {t("cancel")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function SalesmanList({
+  rows,
+  onChange,
+}: {
+  rows: { id: string; full_name: string; is_active: boolean; created_at: string }[] | undefined;
+  onChange: () => void;
+}) {
+  const { t } = useLang();
+
+  const toggle = useMutation({
+    mutationFn: async (row: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active: !row.is_active })
+        .eq("id", row.id);
+      if (error) throw error;
+    },
+    onSuccess: onChange,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!rows) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">{t("noData")}</p>;
+
+  return (
+    <div className="card">
+      {rows.map((row) => (
+        <div key={row.id} className="row">
+          <div>
+            <div className="font-semibold text-foreground">{row.full_name || "—"}</div>
+            <div className="text-xs text-muted-foreground">
+              {new Date(row.created_at).toLocaleDateString()}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={row.is_active ? "badge-ok" : "badge-warn"}>
+              {row.is_active ? t("active") : t("inactive")}
+            </span>
+            <button
+              type="button"
+              className="btn-outline btn-sm"
+              onClick={() => toggle.mutate(row)}
+            >
+              {row.is_active ? t("deactivate") : t("activate")}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

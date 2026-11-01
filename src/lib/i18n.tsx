@@ -12,6 +12,8 @@ const dict: Record<Lang, Record<string, string>> = {
   bn: {
     appName: "মোবাইল হিসাব",
     other_lang: "English",
+    signOut: "সাইন আউট",
+    imei_valid: "ঠিক আছে",
     // auth
     signIn: "সাইন ইন",
     signUp: "সাইন আপ",
@@ -173,6 +175,8 @@ const dict: Record<Lang, Record<string, string>> = {
   en: {
     appName: "Mobile Hisab",
     other_lang: "বাংলা",
+    signOut: "Sign out",
+    imei_valid: "Valid",
     signIn: "Sign in",
     signUp: "Sign up",
     signInTitle: "Sign in",
