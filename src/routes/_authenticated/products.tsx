@@ -62,7 +62,7 @@ interface ProductRow {
   id: string;
   name: string;
   model: string;
-  price: string;
+  price: number;
   category: string;
   is_active: boolean;
 }

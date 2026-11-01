@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/stock-issue")({
 });
 
 interface DraftItem {
-  product: { id: string; name: string; category: string; price: string };
+  product: { id: string; name: string; category: string; price: number };
   qty: number;
   units: { id: string; imei: string }[];
 }
