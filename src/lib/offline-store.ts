@@ -32,15 +32,24 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
       if (!actor.isAdmin || !actor.isActive) throw new Error('Admin required');
       const table = String(p['table']), action = String(p['action']), rows = (p['rows'] ?? []) as Record<string, Json>[];
       if (table !== 'products' && table !== 'retailers' && table !== 'imeiUnits') throw new Error('Invalid local table');
+      if (!['insert','update','delete'].includes(action) || (table === 'imeiUnits' && action !== 'insert')) throw new Error('Invalid catalog action');
+      if ((p['units'] as Json[] | undefined)?.length && (table !== 'products' || action !== 'insert')) throw new Error('Invalid attached IMEIs');
       const target = d[table] as unknown as Record<string, Json>[];
       for (const row of rows) {
         const index = target.findIndex(r => r['id'] === row['id']);
+        if (action !== 'delete' && table === 'products' && 'price' in row && (!Number.isFinite(Number(row['price'])) || Number(row['price']) < 0)) throw new Error('Invalid price');
+        if (action === 'insert' && index >= 0) throw new Error('Duplicate local ID');
+        if (action === 'update' && index < 0) throw new Error('Record unavailable');
+        if (table === 'imeiUnits' && d.imeiUnits.some(u => u.imei === row['imei'])) throw new Error('Duplicate IMEI');
         if (action === 'delete') { if (index >= 0) target.splice(index, 1); }
         else if (index >= 0) Object.assign(target[index] ?? {}, row);
         else target.push({ created_at: date, is_active: true, model: '', price: 0, phone: '', address: '', status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row });
       }
       const units = (p['units'] ?? []) as Record<string, Json>[];
-      for (const row of units) d.imeiUnits.push({ created_at: date, status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row } as unknown as AccountingSnapshot['imeiUnits'][number]);
+      for (const row of units) {
+        if (d.imeiUnits.some(u => u.imei === row['imei'])) throw new Error('Duplicate IMEI');
+        d.imeiUnits.push({ created_at: date, status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row } as unknown as AccountingSnapshot['imeiUnits'][number]);
+      }
       continue;
     }
     if (!actor.isActive || (entry.kind === 'issue' ? !actor.isAdmin : actor.isAdmin)) throw new Error('No permission for offline entry');

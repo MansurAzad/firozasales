@@ -109,6 +109,7 @@ async function runSync() {
       }
       // Atomic local replacement prevents double projection after an ambiguous network response.
       const snapshot = await serverSnapshot();
+      if (await sessionId() !== uid) return;
       await writeAccount(uid, current => {
         if (!current) throw new Error('Local account missing');
         return { ...current, snapshot, updatedAt: new Date().toISOString(), entries: current.entries.filter(e => e.id !== entry.id) };
