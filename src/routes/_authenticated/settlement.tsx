@@ -98,7 +98,9 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (data.error) throw data.error;
   const d = data.data;
+  if (data.error) throw data.error;
   if (data.isLoading || !d) {
     return (
       <AppShell title={t("settlement_title")}>
@@ -137,6 +139,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     return { ok: true, message: t("imei_return_ok") };
   };
 
+  if (history.error) throw history.error;
   const h = history.data;
 
   return (
@@ -402,6 +405,7 @@ function AdminSettlement() {
   const { t } = useLang();
   const data = useQuery({ queryKey: ["admin-settlement"], queryFn: () => fetchAdminData() });
 
+  if (data.error) throw data.error;
   if (data.isLoading || !data.data) {
     return (
       <AppShell title={t("settlement_title")}>
@@ -409,6 +413,7 @@ function AdminSettlement() {
       </AppShell>
     );
   }
+  if (data.error) throw data.error;
   const d = data.data;
 
   return (

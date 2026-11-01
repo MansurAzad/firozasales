@@ -39,33 +39,10 @@ function StockIssuePage() {
   const data = useQuery({
     queryKey: ["stock-issue-page"],
     queryFn: async () => {
-      const [salesmenRoles, productsRes, issuesRes] = await Promise.all([
-        supabase.from("user_roles").select("user_id").eq("role", "salesman"),
-        supabase.from("products").select("id, name, category, price").eq("is_active", true).order("name"),
-        supabase
-          .from("stock_issues")
-          .select("id, salesman_id, issued_at")
-          .order("issued_at", { ascending: false })
-          .limit(10),
-      ]);
-      const ids = (salesmenRoles.data ?? []).map((r) => r.user_id);
-      const [profilesRes, issueItemsRes] = await Promise.all([
-        ids.length
-          ? supabase.from("profiles").select("id, full_name, is_active").in("id", ids)
-          : Promise.resolve({ data: [] as never[] }),
-        issuesRes.data && issuesRes.data.length
-          ? supabase
-              .from("stock_issue_items")
-              .select("id, issue_id, quantity")
-              .in("issue_id", issuesRes.data.map((i) => i.id))
-          : Promise.resolve({ data: [] as never[] }),
-      ]);
-      return {
-        salesmen: profilesRes.data ?? [],
-        products: productsRes.data ?? [],
-        issues: issuesRes.data ?? [],
-        issueItems: issueItemsRes.data ?? [],
-      };
+      const d=await fetchAccounting();
+      const ids=new Set(d.roles.filter(r=>r.role==='salesman').map(r=>r.user_id));
+      return { salesmen:d.profiles.filter(p=>ids.has(p.id)), products:d.products.filter(p=>p.is_active), issues:d.stockIssues, issueItems:d.issueItems };
+
     },
   });
 
@@ -106,6 +83,7 @@ function StockIssuePage() {
       </AppShell>
     );
   }
+  if (data.error) throw data.error;
   const d = data.data;
   if (!d) return null;
 

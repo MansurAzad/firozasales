@@ -46,6 +46,7 @@ function RetailerLedgerPage() {
   });
 
   const post = usePosting();
+  if (data.error) throw data.error;
   const d = data.data;
 
   const totalSales = (d?.sales ?? []).reduce((a, s) => a + toNumber(s.total_amount), 0);
@@ -65,6 +66,7 @@ function RetailerLedgerPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (data.error) throw data.error;
   if (data.isLoading || !role.data?.userId) {
     return (
       <AppShell title={t("ledger")}>

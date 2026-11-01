@@ -103,6 +103,7 @@ function AuthPage() {
           <div className="card">
             <div className="mb-4 flex rounded-xl bg-muted p-1">
               <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setMode("signin")}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
@@ -114,6 +115,7 @@ function AuthPage() {
                 {t("signIn")}
               </Button>
               <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setMode("signup")}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${

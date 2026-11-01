@@ -52,23 +52,11 @@ function AdminSales() {
   const data = useQuery({
     queryKey: ["admin-sales"],
     queryFn: async () => {
-      const [salesRes, profilesRes, retailersRes] = await Promise.all([
-        supabase
-          .from("sales")
-          .select("id, salesman_id, retailer_id, total_amount, paid_amount, sold_at")
-          .order("sold_at", { ascending: false })
-          .limit(30),
-        supabase.from("profiles").select("id, full_name"),
-        supabase.from("retailers").select("id, name"),
-      ]);
-      return {
-        sales: salesRes.data ?? [],
-        profiles: profilesRes.data ?? [],
-        retailers: retailersRes.data ?? [],
-      };
+      return fetchAccounting();
     },
   });
 
+  if (data.error) throw data.error;
   const d = data.data;
   return (
     <AppShell title={t("all_sales")}>
@@ -115,38 +103,13 @@ function SalesmanSales({ userId }: { userId: string }) {
   const data = useQuery({
     queryKey: ["sales-page", userId],
     queryFn: async () => {
-      const [retailersRes, productsRes, salesRes] = await Promise.all([
-        supabase.from("retailers").select("id, name").eq("is_active", true).order("name"),
-        supabase.from("products").select("id, name, category, price").eq("is_active", true).order("name"),
-        supabase
-          .from("sales")
-          .select("id, retailer_id, total_amount, paid_amount, sold_at")
-          .eq("salesman_id", userId)
-          .order("sold_at", { ascending: false })
-          .limit(15),
-      ]);
-      const retailerIds = (salesRes.data ?? []).map((s) => s.retailer_id);
-      const [retailerNames, salesItemsRes] = await Promise.all([
-        retailerIds.length
-          ? supabase.from("retailers").select("id, name").in("id", retailerIds)
-          : Promise.resolve({ data: [] as never[] }),
-        salesRes.data && salesRes.data.length
-          ? supabase
-              .from("sale_items")
-              .select("id, sale_id, quantity, unit_price, product_id")
-              .in("sale_id", salesRes.data.map((s) => s.id))
-          : Promise.resolve({ data: [] as never[] }),
-      ]);
-      return {
-        retailers: retailersRes.data ?? [],
-        products: productsRes.data ?? [],
-        mySales: salesRes.data ?? [],
-        retailerNames: retailerNames.data ?? [],
-        saleItems: salesItemsRes.data ?? [],
-      };
+      const d=await fetchAccounting();
+      return { retailers:d.retailers.filter(r=>r.is_active), products:d.products.filter(p=>p.is_active), mySales:d.sales.filter(s=>s.salesman_id===userId), retailerNames:d.retailers, saleItems:d.saleItems };
+
     },
   });
 
+  if (data.error) throw data.error;
   const d = data.data;
 
   const total = items.reduce(

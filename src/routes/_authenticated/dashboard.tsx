@@ -57,6 +57,7 @@ function AdminDashboard({ userId }: { userId: string }) {
     queryFn: () => fetchAdminData(),
   });
 
+  if (data.error) throw data.error;
   if (data.isLoading) {
     return (
       <AppShell title={t("nav_dashboard")}>
@@ -64,6 +65,7 @@ function AdminDashboard({ userId }: { userId: string }) {
       </AppShell>
     );
   }
+  if (data.error) throw data.error;
   const d = data.data;
   if (!d) return null;
 
@@ -217,6 +219,7 @@ function SalesmanDashboard({ userId }: { userId: string }) {
     queryFn: () => fetchSalesmanData(userId),
   });
 
+  if (data.error) throw data.error;
   if (data.isLoading) {
     return (
       <AppShell title={t("nav_home")}>
@@ -224,6 +227,7 @@ function SalesmanDashboard({ userId }: { userId: string }) {
       </AppShell>
     );
   }
+  if (data.error) throw data.error;
   const d = data.data;
   if (!d) return null;
 
