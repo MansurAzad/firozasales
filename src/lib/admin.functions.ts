@@ -63,12 +63,11 @@ export const listSalesmanAccounts = createServerFn({ method: "GET" })
     if (error || admin !== true) throw new Error("Forbidden");
     const { error: inactive } = await context.supabase.rpc("require_active_account");
     if (inactive) throw new Error("Forbidden");
-    const { data: snapshot, error: snapshotError } = await context.supabase.rpc("accounting_snapshot");
-    if (snapshotError || !snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) throw new Error("Could not read SR accounts");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: roles, error: rolesError } = await context.supabase.from("user_roles").select("user_id, role");
     if (rolesError) throw new Error("Could not read SR accounts");
     const srIds = new Set((roles ?? []).filter(r => r.role === "salesman" && !roles?.some(a => a.user_id === r.user_id && a.role === "admin")).map(r => r.user_id));
+    if (!srIds.size) return [];
     const { data: profiles, error: profileError } = await context.supabase.from("profiles").select("id, full_name, is_active, created_at").in("id", [...srIds]);
     if (profileError) throw new Error("Could not read SR accounts");
     const emails = new Map<string, string>();

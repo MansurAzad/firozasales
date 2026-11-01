@@ -94,9 +94,9 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
+      <Button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
         + {t("add_salesman")}
-      </button>
+      </Button>
     );
   }
 
@@ -130,12 +130,12 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="flex gap-2">
-          <button type="submit" className="btn-primary" disabled={create.isPending}>
+          <Button type="submit" className="btn-primary" disabled={create.isPending}>
             {t("create_account")}
-          </button>
-          <button type="button" className="btn-outline" onClick={() => setOpen(false)}>
+          </Button>
+          <Button type="button" variant="outline" className="btn-outline" onClick={() => setOpen(false)}>
             {t("cancel")}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -179,13 +179,15 @@ function SalesmanList({
             <span className={row.is_active ? "badge-ok" : "badge-warn"}>
               {row.is_active ? t("active") : t("inactive")}
             </span>
-            <button
+            <Button
+              variant="outline"
+              disabled={toggle.isPending}
               type="button"
               className="btn-outline btn-sm"
               onClick={() => toggle.mutate(row)}
             >
               {row.is_active ? t("deactivate") : t("activate")}
-            </button>
+            </Button>
           </div>
         </div>
       ))}
