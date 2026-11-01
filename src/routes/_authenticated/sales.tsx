@@ -208,7 +208,7 @@ function SalesmanSales({ userId }: { userId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function addItem(product: { id: string; name: string; category: string; price: string }) {
+  function addItem(product: { id: string; name: string; category: string; price: number }) {
     if (items.some((i) => i.product.id === product.id)) return;
     setItems((prev) => [
       ...prev,

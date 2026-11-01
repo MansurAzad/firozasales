@@ -205,7 +205,7 @@ function ProductList({
   onChange: () => void;
 }) {
   const { t } = useLang();
-  const [editing, setEditing] = useState<ProductRow | null>(null);
+  const [editing, setEditing] = useState<(Omit<ProductRow, "price"> & { price: string }) | null>(null);
   const [addImeiFor, setAddImeiFor] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -327,7 +327,7 @@ function ProductList({
                 </div>
                 {isAdmin ? (
                   <div className="flex shrink-0 gap-1">
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing(p)}>
+                    <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing({ ...p, price: String(p.price) } as never)}>
                       {t("edit")}
                     </button>
                     {p.category === "smartphone" ? (
