@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { firstUseMessage, isOffline, onlineRequired } from '@/lib/offline-store';
+import { firstUseMessage, isOffline } from '@/lib/offline-store';
 import { localAccess } from '@/lib/offline';
 
 export const Route = createFileRoute("/auth")({

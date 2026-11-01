@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
 import type { Database, Json } from '@/integrations/supabase/types';
 import { useRef } from 'react';
 import { offlineSnapshot, postOfflineAware } from './offline';

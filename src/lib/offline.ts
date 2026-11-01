@@ -42,9 +42,10 @@ export async function offlineSnapshot(): Promise<AccountingSnapshot> {
   let account = await readAccount(id);
   if (!isOffline() && !account?.entries.length) {
     const snapshot = await serverSnapshot();
+    if (await sessionId() !== id) throw new Error('Account changed');
     const profile = snapshot.profiles.find(p => p.id === id);
     const role: MyRole = { userId: id, isAdmin: snapshot.roles.some(r => r.user_id === id && r.role === 'admin'), fullName: profile?.full_name ?? '', isActive: profile?.is_active === true };
-    await writeAccount(id, current => ({ entries: [], extras: {}, ...current, snapshot, role, updatedAt: new Date().toISOString() }));
+    await writeAccount(id, current => current?.entries.length ? current : ({ entries: [], extras: {}, ...current, snapshot, role, updatedAt: new Date().toISOString() }));
     localStorage.setItem(identityKey, id);
     account = await readAccount(id);
   }
@@ -81,29 +82,14 @@ export async function catalogWrite(table: CatalogTable, action: 'insert'|'update
   return prepared;
 }
 async function sendCatalog(entry: LocalEntry) {
-  const p = entry.payload as { table: CatalogTable; action: string; rows: Record<string, Json>[]; units: Record<string, Json>[] };
-  const table = p.table === 'imeiUnits' ? 'imei_units' : p.table;
-  for (const row of p.rows) {
-    const id = String(row['id']);
-    // UUID inserts are retry-safe without overwriting an existing financial/stock row.
-    if (p.action === 'insert') {
-      const { data, error } = await supabase.from(table).select('id').eq('id', id).maybeSingle();
-      if (error) throw new Error(error.message);
-      if (data) continue;
-    }
-    const result = p.action === 'delete' ? await supabase.from(table).delete().eq('id', id) : p.action === 'update' ? await supabase.from(table).update(row as never).eq('id', id) : await supabase.from(table).insert(row as never);
-    if (result.error) throw new Error(result.error.message);
-  }
-  for (const row of p.units ?? []) {
-    const { data, error } = await supabase.from('imei_units').select('id').eq('id', String(row['id'])).maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!data) { const result = await supabase.from('imei_units').insert(row as never); if (result.error) throw new Error(result.error.message); }
-  }
+  const { error } = await supabase.rpc('post_catalog', { p_request_id: entry.id, p_payload: entry.payload });
+  if (error) throw new Error(error.message);
 }
+
 let syncing: Promise<void> | undefined;
 export function syncOffline() {
   if (syncing) return syncing;
-  syncing = runSync().finally(() => { syncing = undefined; }); return syncing;
+  syncing = (navigator.locks ? navigator.locks.request('fe-outbox-sync', () => runSync()) : runSync()).finally(() => { syncing = undefined; }); return syncing;
 }
 async function runSync() {
   if (isOffline()) return;
