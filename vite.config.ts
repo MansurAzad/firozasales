@@ -11,17 +11,15 @@ import { existsSync } from 'node:fs';
 export default defineConfig({
   vite: {
     plugins: [VitePWA({
-      integration: { closeBundleOrder: 'post', beforeBuildServiceWorker(options) {
-        // Client closeBundle precedes TanStack's anonymous shell prerender.
-        options.workbox.navigateFallback = existsSync('dist/client/_shell.html') ? '/_shell.html' : null;
-      } },
+      integration: { closeBundleOrder: 'post' },
       strategies: 'generateSW', filename: 'sw.js', registerType: 'autoUpdate', injectRegister: null,
       outDir: 'dist/client',
       devOptions: { enabled: false }, manifest: false,
       includeAssets: ['icons/*.png', 'manifest.webmanifest', 'offline.html'],
       workbox: {
         globPatterns: ['**/*.{js,css,woff2,png,ico}', '_shell.html'], maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        navigateFallback: '/_shell.html', navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+        // Only the NetworkFirst rule handles navigations; its fallback is the anonymous shell.
+        navigateFallback: null,
         runtimeCaching: [
           { urlPattern: ({ request, url }) => request.mode === 'navigate' && url.origin === self.location.origin && !url.pathname.startsWith('/~oauth') && !url.pathname.startsWith('/api/'), handler: 'NetworkFirst', options: { cacheName: 'fe-navigation', networkTimeoutSeconds: 3, precacheFallback: { fallbackURL: '/_shell.html' }, plugins: [{ cacheWillUpdate: async () => null }] } },
           { urlPattern: ({ url }) => url.origin === self.location.origin && /\/assets\/.*-[A-Za-z0-9_-]{6,}\.(js|css|woff2)$/.test(url.pathname), handler: 'CacheFirst', options: { cacheName: 'fe-assets', expiration: { maxEntries: 250 } } },
