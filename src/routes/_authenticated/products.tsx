@@ -210,7 +210,7 @@ function ProductList({
   const queryClient = useQueryClient();
 
   const update = useMutation({
-    mutationFn: async (row: ProductRow) => {
+    mutationFn: async (row: Omit<ProductRow, "price"> & { price: string }) => {
       const { error } = await supabase
         .from("products")
         .update({ name: row.name, model: row.model, price: Number(row.price) })
