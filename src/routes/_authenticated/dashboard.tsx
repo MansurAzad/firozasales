@@ -184,8 +184,7 @@ function AdminDashboard({ userId }: { userId: string }) {
       </section>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        {userId.slice(0, 0)}
-        Admin · {t("appName")}
+        {t("appName")} · {t("role_admin")}
       </p>
     </AppShell>
   );

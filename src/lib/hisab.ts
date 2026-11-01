@@ -1,6 +1,43 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toNumber } from "./money";
 
+export interface AdminData {
+  salesmen: { id: string; full_name: string; is_active: boolean }[];
+  products: { id: string; name: string; model: string; price: string; category: string; is_active: boolean }[];
+  imeiUnits: { id: string; product_id: string; imei: string; status: string; current_salesman: string | null }[];
+  retailers: { id: string; name: string; is_active: boolean }[];
+  sales: { id: string; salesman_id: string; retailer_id: string; total_amount: string; paid_amount: string; sold_at: string }[];
+  payments: { id: string; salesman_id: string; retailer_id: string; amount: string; paid_at: string }[];
+  deposits: { id: string; salesman_id: string; amount: string; deposited_at: string }[];
+}
+
+/** Everything the admin dashboards need, read once and aggregated client-side. */
+export async function fetchAdminData(): Promise<AdminData> {
+  const [profilesRes, rolesRes, productsRes, imeiRes, retailersRes, salesRes, paymentsRes, depositsRes] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name, is_active"),
+      supabase.from("user_roles").select("user_id, role").eq("role", "salesman"),
+      supabase.from("products").select("id, name, model, price, category, is_active").order("name"),
+      supabase.from("imei_units").select("id, product_id, imei, status, current_salesman"),
+      supabase.from("retailers").select("id, name, is_active").order("name"),
+      supabase.from("sales").select("id, salesman_id, retailer_id, total_amount, paid_amount, sold_at"),
+      supabase.from("retailer_payments").select("id, salesman_id, retailer_id, amount, paid_at"),
+      supabase.from("deposits").select("id, salesman_id, amount, deposited_at"),
+    ]);
+
+  const salesmanIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
+  return {
+    salesmen: (profilesRes.data ?? []).filter((p) => salesmanIds.has(p.id)),
+    products: productsRes.data ?? [],
+    imeiUnits: imeiRes.data ?? [],
+    retailers: retailersRes.data ?? [],
+    sales: salesRes.data ?? [],
+    payments: paymentsRes.data ?? [],
+    deposits: depositsRes.data ?? [],
+  };
+}
+
+
 export function sumBy<T>(rows: T[], f: (row: T) => number): number {
   return rows.reduce((acc, row) => acc + f(row), 0);
 }
