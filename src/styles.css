@@ -123,23 +123,28 @@
   .card-title {
     @apply text-sm font-semibold text-muted-foreground;
   }
-  .btn {
+  .btn,
+  .btn-primary,
+  .btn-outline,
+  .btn-secondary,
+  .btn-danger,
+  .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
   }
   .btn-outline {
-    @apply btn border border-input bg-card text-foreground hover:bg-accent;
+    @apply border border-input bg-card text-foreground hover:bg-accent;
   }
   .btn-secondary {
-    @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
   }
   .btn-danger {
-    @apply btn bg-destructive text-destructive-foreground hover:bg-destructive/90;
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
   }
   .btn-ghost {
-    @apply btn text-foreground hover:bg-accent;
+    @apply text-foreground hover:bg-accent;
   }
   .btn-sm {
     @apply px-3 py-1.5 text-xs;
@@ -153,17 +158,20 @@
   .field {
     @apply mb-3;
   }
-  .badge {
+  .badge,
+  .badge-ok,
+  .badge-warn,
+  .badge-mut {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
   }
   .badge-ok {
-    @apply badge bg-success/15 text-success;
+    @apply bg-success/15 text-success;
   }
   .badge-warn {
-    @apply badge bg-warning/20 text-warning-foreground;
+    @apply bg-warning/20 text-warning-foreground;
   }
   .badge-mut {
-    @apply badge bg-muted text-muted-foreground;
+    @apply bg-muted text-muted-foreground;
   }
   .stat-card {
     @apply rounded-2xl border border-border bg-card p-3 shadow-sm;
