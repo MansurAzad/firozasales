@@ -281,8 +281,8 @@ function RetailerBalance({
   isAdmin: boolean;
   userId: string;
   data: {
-    sales: { id: string; retailer_id: string; salesman_id: string; total_amount: string; paid_amount: string }[];
-    payments: { id: string; retailer_id: string; salesman_id: string; amount: string }[];
+    sales: { id: string; retailer_id: string; salesman_id: string; total_amount: number; paid_amount: number }[];
+    payments: { id: string; retailer_id: string; salesman_id: string; amount: number }[];
   };
 }) {
   const { t } = useLang();
