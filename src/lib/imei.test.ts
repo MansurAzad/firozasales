@@ -13,9 +13,9 @@ describe("IMEI normalization", () => {
   });
 
   it("accepts 14–16 digit codes and rejects anything else", () => {
-    expect(isPlausibleImei("35678910112345")).toBe(true); // 15
-    expect(isPlausibleImei("3567891011234")).toBe(true); // 14
-    expect(isPlausibleImei("356789101123456")).toBe(true); // 16
+    expect(isPlausibleImei("35678910112345")).toBe(true); // 14
+    expect(isPlausibleImei("356789101123450")).toBe(true); // 15
+    expect(isPlausibleImei("3567891011234501")).toBe(true); // 16
     expect(isPlausibleImei("123")).toBe(false);
     expect(isPlausibleImei("")).toBe(false);
   });
