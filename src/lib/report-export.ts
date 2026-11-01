@@ -1,6 +1,6 @@
 import type { Report } from './reports';
 import { currentLocalAccount } from './offline';
-import companyLogo from '@/assets/firoza-logo.png.asset.json';
+import { companyLogoUrl } from './company-brand';
 
 export async function createExcelFile(report: Report, filename: string): Promise<File> {
   const { Workbook } = await import('exceljs');
@@ -9,7 +9,7 @@ export async function createExcelFile(report: Report, filename: string): Promise
   const sheet = workbook.addWorksheet('Report');
   sheet.addRow(['FIROZA ENTERPRISE']);
   sheet.getRow(1).height = 44;
-  const logoResponse = await fetch(companyLogo.url);
+  const logoResponse = await fetch(companyLogoUrl, { credentials: 'omit' });
   if (!logoResponse.ok) throw new Error('Company logo could not be loaded');
   const logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
   const logoBase64 = btoa(Array.from(logoBytes, byte => String.fromCharCode(byte)).join(''));
