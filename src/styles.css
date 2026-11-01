@@ -194,7 +194,7 @@
 }
 
 :root { --paper: oklch(1 0 0); --paper-ink: oklch(0.22 0.02 210); --paper-line: oklch(0.84 0.02 200); --paper-accent: oklch(0.42 0.085 200); }
-.paper-scroll { overflow-x: auto; }
+.paper-scroll { overflow-x: auto; container-type: inline-size; }
 .business-paper { width: 794px; margin-inline: auto; }
 .paper-page { position: relative; box-sizing: border-box; width: 794px; height: 1123px; padding: 42px; margin-bottom: 24px; background: var(--paper); color: var(--paper-ink); font-size: 11px; }
 .paper-brand { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid var(--paper-accent); padding-bottom: 22px; }
@@ -221,13 +221,19 @@
 .paper-letter p { margin-top: 14px; }
 .paper-letter h4 { margin-block: 24px; font-weight: 700; }
 .paper-letter div { white-space: pre-wrap; overflow-wrap: anywhere; }
+@container (max-width: 793px) { .business-paper { zoom: 0.9; } }
+@container (max-width: 714px) { .business-paper { zoom: 0.8; } }
+@container (max-width: 635px) { .business-paper { zoom: 0.7; } }
+@container (max-width: 556px) { .business-paper { zoom: 0.6; } }
+@container (max-width: 477px) { .business-paper { zoom: 0.5; } }
+@container (max-width: 397px) { .business-paper { zoom: 0.4; } }
 @page { size: A4; margin: 0; }
 @media print {
   body { background: var(--paper); }
   header:not(.paper-brand),nav,.print-hidden { display: none !important; }
   .page { max-width: none; padding: 0; margin: 0; }
   .paper-scroll { overflow: visible; }
-  .business-paper { width: 210mm; margin: 0; }
+  .business-paper { width: 210mm; margin: 0; zoom: 1; }
   .paper-page { width: 210mm; height: 297mm; margin: 0; break-after: page; print-color-adjust: exact; }
   .paper-page:last-child { break-after: auto; }
 }

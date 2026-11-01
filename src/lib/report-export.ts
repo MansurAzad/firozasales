@@ -10,6 +10,10 @@ export async function exportExcel(report: Report, filename: string) {
   sheet.addRow([]);
   sheet.addRow(report.columns);
   report.rows.forEach(row => sheet.addRow(row));
+  if ('totals' in report && Array.isArray(report.totals)) {
+    sheet.addRow([]);
+    report.totals.forEach(total => sheet.addRow(total));
+  }
   sheet.views = [{state:'frozen', ySplit:4}];
   sheet.autoFilter = {from:{row:4,column:1},to:{row:4,column:report.columns.length}};
   sheet.columns.forEach((column,index) => { column.width = index===0?38:24; });
