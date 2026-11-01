@@ -60,4 +60,46 @@ describe('offline access and synchronization', () => {
     resolveRead({ data: snapshot, error: null }); await refresh;
     expect((await readAccount(role.userId))?.snapshot?.payments[0]?.amount).toBe(25);
   });
+  it('does not repost an acknowledged transaction when snapshot read-back failed', async () => {
+    await writeAccount(role.userId, () => ({ role, entries: [], extras: {}, snapshot }));
+    await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'acknowledged');
+    mocks.rpc.mockImplementation(async name => name === 'accounting_snapshot' ? { error: { message: 'Read unavailable' } } : { data: 'posted', error: null });
+    await expect(syncOffline()).rejects.toThrow('Read unavailable');
+    expect((await readAccount(role.userId))?.entries[0]?.confirmed).toBe(true);
+    mocks.rpc.mockResolvedValue({ data: snapshot, error: null }); await syncOffline();
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === 'post_transaction')).toHaveLength(1);
+    expect((await readAccount(role.userId))?.entries).toHaveLength(0);
+  });
+  it('uses atomic catalog posting with the original request id on retry', async () => {
+    const admin = { ...role, isAdmin: true };
+    await writeAccount(role.userId, () => ({ role: admin, entries: [], extras: {}, snapshot }));
+    const payload = { table: 'products', action: 'insert', rows: [{ id: 'p', name: 'Phone', category: 'button_phone', price: 1200 }], units: [] };
+    await enqueue('catalog', payload, 'catalog-key');
+    mocks.rpc.mockResolvedValueOnce({ error: { message: 'Lost response' } });
+    await expect(syncOffline()).rejects.toThrow('Lost response');
+    mocks.rpc.mockResolvedValue({ data: snapshot, error: null }); await syncOffline();
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === 'post_catalog')).toEqual([['post_catalog', { p_request_id: 'catalog-key', p_payload: payload }], ['post_catalog', { p_request_id: 'catalog-key', p_payload: payload }]]);
+  });
+  it('never posts when the verified user differs from the queued account', async () => {
+    await writeAccount(role.userId, () => ({ role, entries: [], extras: {}, snapshot })); await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'identity');
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'other' } }, error: null });
+    await expect(syncOffline()).rejects.toThrow('Reconnect and sign in'); expect(mocks.rpc).not.toHaveBeenCalled();
+    expect((await readAccount(role.userId))?.entries).toHaveLength(1);
+  });
+  it('shares one synchronization runner for concurrent callers', async () => {
+    await writeAccount(role.userId, () => ({ role, entries: [], extras: {}, snapshot })); await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'concurrent');
+    mocks.rpc.mockResolvedValue({ data: snapshot, error: null }); await Promise.all([syncOffline(), syncOffline(), syncOffline()]);
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === 'post_transaction')).toHaveLength(1);
+  });
+  it('retains new entries queued while an earlier entry is being synchronized', async () => {
+    await writeAccount(role.userId, () => ({ role, entries: [], extras: {}, snapshot })); await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'first');
+    let inserted = false;
+    mocks.rpc.mockImplementation(async (name, args) => {
+      if (name === 'post_transaction' && args.p_request_id === 'first' && !inserted) { inserted = true; await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'second'); }
+      if (name === 'post_transaction' && args.p_request_id === 'second') return { error: { message: 'Second rejected' } };
+      return { data: snapshot, error: null };
+    });
+    await expect(syncOffline()).rejects.toThrow('Second rejected');
+    expect((await readAccount(role.userId))?.entries.map(e => e.id)).toEqual(['second']);
+  });
 });
