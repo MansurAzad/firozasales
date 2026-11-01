@@ -1,5 +1,6 @@
 # Tasks
-- [ ] Add installed PWA offline shell, per-account local data, offline entries with guarded synchronization, first-use validation and verification.
+- [x] Implement PWA manifest/icons, guarded generated offline worker and anonymous SPA shell; account-scoped IndexedDB snapshot/outbox, atomic catalog synchronization, cached IMEI checks, online-only security actions and provisional exports; 53 tests passed and authenticated local entry, PDF/Excel and first-use validation verified without posting test financial data.
+- [ ] Verify installed published-app cold offline launch and real phone camera/share/print — requires publishing these changes and a real device; preview deliberately never registers the offline worker.
 - [x] Add local PDF/Excel sharing for all reports and documents; verify 17 generated files with simulated Web Share, cancellation, actual fallback download and mobile dialog; 39 tests pass. Real device share-sheet delivery remains device-dependent.
 - [x] Verify existing retailer collections and SR cash deposits, amount limits and real balance read-back; clarify entry points. No new financial entries were posted during testing.
 - [x] Add role-aware icon bottom navigation and admin overflow sheet; improve mobile lists, summaries, forms and dialogs; verify admin/SR pages at 320, 390, 764 and 1280 widths with 34 passing tests.
