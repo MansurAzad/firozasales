@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,9 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/stock-issue")({
   head: () => ({
     meta: [
-      { title: "মাল ইস্যু — মোবাইল হিসাব" },
+      { title: "মাল ইস্যু — FE MANAGEMENT" },
       { name: "description", content: "Issue stock to salesmen, with IMEI scanning." },
-      { property: "og:title", content: "মাল ইস্যু — মোবাইল হিসাব" },
+      { property: "og:title", content: "মাল ইস্যু — FE MANAGEMENT" },
       { property: "og:description", content: "Issue stock to salesmen, with IMEI scanning." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -169,7 +170,7 @@ function StockIssuePage() {
               </option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
             className="btn-secondary shrink-0"
             disabled={!pickProduct}
@@ -180,20 +181,20 @@ function StockIssuePage() {
             }}
           >
             {t("add")}
-          </button>
+          </Button>
         </div>
 
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="font-semibold text-foreground">{item.product.name}</div>
-              <button
+              <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"
                 onClick={() => setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))}
               >
                 {t("delete")}
-              </button>
+              </Button>
             </div>
             {item.product.category === "button_phone" ? (
               <div className="flex items-center gap-2">
@@ -250,14 +251,14 @@ function StockIssuePage() {
           </div>
         ))}
 
-        <button
+        <Button
           type="button"
           className="btn-primary w-full"
           disabled={!salesmanId || items.length === 0 || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("issue_stock")}
-        </button>
+        </Button>
       </div>
 
       <section className="card">

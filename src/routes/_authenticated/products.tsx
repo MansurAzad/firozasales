@@ -13,9 +13,9 @@ import { formatBDT } from "@/lib/money";
 export const Route = createFileRoute("/_authenticated/products")({
   head: () => ({
     meta: [
-      { title: "প্রোডাক্ট — মোবাইল হিসাব" },
+      { title: "প্রোডাক্ট — FE MANAGEMENT" },
       { name: "description", content: "Product list with prices, categories and IMEI stock." },
-      { property: "og:title", content: "প্রোডাক্ট — মোবাইল হিসাব" },
+      { property: "og:title", content: "প্রোডাক্ট — FE MANAGEMENT" },
       {
         property: "og:description",
         content: "Product list with prices, categories and IMEI stock.",

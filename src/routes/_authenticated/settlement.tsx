@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,9 +22,9 @@ import {
 export const Route = createFileRoute("/_authenticated/settlement")({
   head: () => ({
     meta: [
-      { title: "সেটেলমেন্ট — মোবাইল হিসাব" },
+      { title: "সেটেলমেন্ট — FE MANAGEMENT" },
       { name: "description", content: "Return stock, deposit cash, settle the trip." },
-      { property: "og:title", content: "সেটেলমেন্ট — মোবাইল হিসাব" },
+      { property: "og:title", content: "সেটেলমেন্ট — FE MANAGEMENT" },
       { property: "og:description", content: "Return stock, deposit cash, settle the trip." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -251,13 +252,13 @@ function SalesmanSettlement({ userId }: { userId: string }) {
                   />
                   {t("damaged")}
                 </label>
-                <button
+                <Button
                   type="button"
                   className="btn-ghost btn-sm text-destructive"
                   onClick={() => setReturns((prev) => prev.filter((_, i) => i !== idx))}
                 >
                   {t("delete")}
-                </button>
+                </Button>
               </div>
             </div>
             {r.units.length > 0 ? (
@@ -297,31 +298,31 @@ function SalesmanSettlement({ userId }: { userId: string }) {
             onChange={(e) => setDepositNote(e.target.value)}
             placeholder={t("note")}
           />
-          <button type="submit" className="btn-secondary btn-sm">
+          <Button type="submit" className="btn-secondary btn-sm">
             {t("add")}
-          </button>
+          </Button>
         </form>
         {deposits.map((dep, idx) => (
           <div key={idx} className="row">
             <span className="font-semibold">{formatBDT(dep.amount)}</span>
-            <button
+            <Button
               type="button"
               className="btn-ghost btn-sm text-destructive"
               onClick={() => setDeposits((prev) => prev.filter((_, i) => i !== idx))}
             >
               {t("delete")}
-            </button>
+            </Button>
           </div>
         ))}
 
-        <button
+        <Button
           type="button"
           className="btn-primary mt-3 w-full"
           disabled={(returns.length === 0 && deposits.length === 0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("settle_btn")}
-        </button>
+        </Button>
       </section>
 
       <section className="card">
@@ -392,7 +393,7 @@ function AddQtyReturn({
         <input type="checkbox" checked={damaged} onChange={(e) => setDamaged(e.target.checked)} />
         {t("damaged")}
       </label>
-      <button type="submit" className="btn-secondary btn-sm">{t("add")}</button>
+      <Button type="submit" className="btn-secondary btn-sm">{t("add")}</Button>
     </form>
   );
 }

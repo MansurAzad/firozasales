@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -87,7 +88,7 @@ function AuthPage() {
         {awaitingConfirm ? (
           <div className="card text-center">
             <p className="text-sm text-foreground">{t("checkEmail")}</p>
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setAwaitingConfirm(false);
@@ -96,12 +97,12 @@ function AuthPage() {
               className="btn-primary mt-4 w-full"
             >
               {t("signIn")}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="card">
             <div className="mb-4 flex rounded-xl bg-muted p-1">
-              <button
+              <Button
                 type="button"
                 onClick={() => setMode("signin")}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
@@ -111,8 +112,8 @@ function AuthPage() {
                 }`}
               >
                 {t("signIn")}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setMode("signup")}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
@@ -122,7 +123,7 @@ function AuthPage() {
                 }`}
               >
                 {t("signUp")}
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={submit}>
@@ -169,13 +170,13 @@ function AuthPage() {
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 />
               </div>
-              <button type="submit" className="btn-primary w-full" disabled={busy}>
+              <Button type="submit" className="btn-primary w-full" disabled={busy}>
                 {busy
                   ? t("loading")
                   : mode === "signin"
                     ? t("signInBtn")
                     : t("signUpBtn")}
-              </button>
+              </Button>
             </form>
 
             {mode === "signup" ? (

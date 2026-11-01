@@ -13,9 +13,9 @@ import { formatBDT, toNumber } from "@/lib/money";
 export const Route = createFileRoute("/_authenticated/retailers/")({
   head: () => ({
     meta: [
-      { title: "রিটেইলার — মোবাইল হিসাব" },
+      { title: "রিটেইলার — FE MANAGEMENT" },
       { name: "description", content: "Retailer list with balances and ledgers." },
-      { property: "og:title", content: "রিটেইলার — মোবাইল হিসাব" },
+      { property: "og:title", content: "রিটেইলার — FE MANAGEMENT" },
       { property: "og:description", content: "Retailer list with balances and ledgers." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

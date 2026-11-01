@@ -17,9 +17,9 @@ import {
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "ড্যাশবোর্ড — মোবাইল হিসাব" },
-      { name: "description", content: "Hisab dashboard: stock, sales, dues, deposits." },
-      { property: "og:title", content: "ড্যাশবোর্ড — মোবাইল হিসাব" },
+      { title: "ড্যাশবোর্ড — FE MANAGEMENT" },
+      { name: "description", content: "FIROZA ENTERPRISE dashboard: stock, sales, dues, deposits." },
+      { property: "og:title", content: "ড্যাশবোর্ড — FE MANAGEMENT" },
       {
         property: "og:description",
         content: "Stock, sales, dues and deposits at a glance.",

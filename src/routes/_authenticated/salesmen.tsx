@@ -13,9 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/salesmen")({
   head: () => ({
     meta: [
-      { title: "Salesman — মোবাইল হিসাব" },
+      { title: "Salesman — FE MANAGEMENT" },
       { name: "description", content: "Create and manage salesman accounts." },
-      { property: "og:title", content: "Salesman — মোবাইল হিসাব" },
+      { property: "og:title", content: "Salesman — FE MANAGEMENT" },
       { property: "og:description", content: "Create and manage salesman accounts." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

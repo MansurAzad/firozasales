@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,9 +15,9 @@ import { formatBDT, saleDue, toNumber } from "@/lib/money";
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
     meta: [
-      { title: "বিক্রি — মোবাইল হিসাব" },
+      { title: "বিক্রি — FE MANAGEMENT" },
       { name: "description", content: "Record sales to retailers with cash and dues." },
-      { property: "og:title", content: "বিক্রি — মোবাইল হিসাব" },
+      { property: "og:title", content: "বিক্রি — FE MANAGEMENT" },
       { property: "og:description", content: "Record sales to retailers with cash and dues." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -224,7 +225,7 @@ function SalesmanSales({ userId }: { userId: string }) {
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
             className="btn-secondary shrink-0"
             disabled={!pickProduct || !d}
@@ -235,20 +236,20 @@ function SalesmanSales({ userId }: { userId: string }) {
             }}
           >
             {t("add")}
-          </button>
+          </Button>
         </div>
 
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="font-semibold text-foreground">{item.product.name}</div>
-              <button
+              <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"
                 onClick={() => setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))}
               >
                 {t("delete")}
-              </button>
+              </Button>
             </div>
             <div className="mb-2 grid grid-cols-2 gap-2">
               {item.product.category === "button_phone" ? (
@@ -355,14 +356,14 @@ function SalesmanSales({ userId }: { userId: string }) {
           <input id="s-note" className="input" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
 
-        <button
+        <Button
           type="button"
           className="btn-primary w-full"
           disabled={!retailerId || items.length === 0 || !validCash(paid,total,true) || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("save_sale")}
-        </button>
+        </Button>
       </div>
 
       <section className="card">

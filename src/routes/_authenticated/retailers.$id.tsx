@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,9 +14,9 @@ import { formatBDT, toNumber } from "@/lib/money";
 export const Route = createFileRoute("/_authenticated/retailers/$id")({
   head: () => ({
     meta: [
-      { title: "লেজার — মোবাইল হিসাব" },
+      { title: "লেজার — FE MANAGEMENT" },
       { name: "description", content: "Retailer ledger: stock, payments, balance." },
-      { property: "og:title", content: "লেজার — মোবাইল হিসাব" },
+      { property: "og:title", content: "লেজার — FE MANAGEMENT" },
       { property: "og:description", content: "Retailer ledger: stock, payments, balance." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -213,9 +214,9 @@ function PaymentCollect({
           onChange={(e) => setNote(e.target.value)}
           placeholder={t("note")}
         />
-        <button type="submit" className="btn-primary" disabled={busy || balance<=0}>
+        <Button type="submit" className="btn-primary" disabled={busy || balance<=0}>
           {t("receive_payment")}
-        </button>
+        </Button>
       </form>
     </div>
   );
