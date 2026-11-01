@@ -162,25 +162,32 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
       ) : null}
 
       {manualOpen ? (
-        <form
-          className="mb-2 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleCode(manual);
-            setManual("");
-          }}
-        >
+        <div className="mb-2 flex gap-2">
           <input
             className="input"
             inputMode="numeric"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void handleCode(manual);
+                setManual("");
+              }
+            }}
             placeholder="IMEI"
           />
-          <button type="submit" className="btn-secondary btn-sm shrink-0">
+          <button
+            type="button"
+            className="btn-secondary btn-sm shrink-0"
+            onClick={() => {
+              void handleCode(manual);
+              setManual("");
+            }}
+          >
             {t("submit")}
           </button>
-        </form>
+        </div>
       ) : null}
 
       {signal ? (
