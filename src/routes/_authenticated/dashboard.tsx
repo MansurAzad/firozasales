@@ -236,7 +236,7 @@ function SalesmanDashboard({ userId }: { userId: string }) {
     <AppShell title={t("dash_my_stock")}>
       <h1 className="page-title mb-4">{t("dash_my_stock")}</h1>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="stat-card">
           <div className="stat-value">{formatBDT(summary.cashCollected)}</div>
           <div className="stat-label">{t("dash_cash_collected")}</div>
@@ -251,6 +251,10 @@ function SalesmanDashboard({ userId }: { userId: string }) {
         </div>
       </div>
 
+      <div className="mb-5 grid grid-cols-2 gap-3">
+        <Link to="/retailers" className="btn-primary">{t("receive_payment")}</Link>
+        <Link to="/settlement" className="btn-outline">{t("deposit_entry")}</Link>
+      </div>
       <section className="card mb-5">
         <h2 className="card-title mb-3">{t("dash_my_stock")}</h2>
         {d.products.length === 0 ? (

@@ -114,7 +114,7 @@ function RetailerLedgerPage() {
         {d.retailer.phone || "—"} {d.retailer.address ? `· ${d.retailer.address}` : ""}
       </p>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="stat-card">
           <div className="stat-value">{formatBDT(totalSales)}</div>
           <div className="stat-label">{t("total_sales")}</div>
@@ -130,11 +130,11 @@ function RetailerLedgerPage() {
       </div>
 
       {!role.data.isAdmin ? (
-        <PaymentCollect
+        <><PaymentCollect
           balance={balance}
           busy={addPayment.isPending}
           onSubmit={(amount, note) => addPayment.mutate({ amount, note })}
-        />
+        /><Button asChild variant="outline" className="mb-4 w-full min-h-11 whitespace-normal"><Link to="/settlement">{t("deposit_entry")}</Link></Button></>
       ) : null}
 
       <section className="card">
@@ -144,7 +144,7 @@ function RetailerLedgerPage() {
         ) : (
           entries.map((e, idx) => (
             <div key={idx} className="row">
-              <div>
+              <div className="min-w-0">
                 <div className="font-medium text-foreground">
                   {e.kind === "sale"
                     ? `${t("total_sales")}: ${formatBDT(e.total)}`
@@ -156,11 +156,11 @@ function RetailerLedgerPage() {
                 </div>
               </div>
               {e.kind === "sale" ? (
-                <span className="badge-mut">
+                <span className="badge-mut max-w-32 whitespace-normal">
                   {t("paid")}: {formatBDT(e.paid)}
                 </span>
               ) : (
-                <span className="badge-ok">{formatBDT(e.amount)}</span>
+                <span className="badge-ok max-w-32 whitespace-normal">{formatBDT(e.amount)}</span>
               )}
             </div>
           ))
@@ -186,9 +186,8 @@ function PaymentCollect({
   return (
     <div className="card mb-4">
       <h2 className="card-title mb-2">{t("receive_payment")}</h2>
-      <p className="mb-2 text-xs text-muted-foreground">{t("collect_note")}</p>
       <form
-        className="flex flex-wrap items-end gap-2"
+        className="grid min-w-0 gap-3 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
           const n = Number(amount);
@@ -198,24 +197,27 @@ function PaymentCollect({
           setNote("");
         }}
       >
-        <input
+        <div><label className="label" htmlFor="payment-amount">{t("payment_amount")}</label><input
+          id="payment-amount"
+          inputMode="decimal"
           type="number"
           min="0.01"
           step="0.01"
           max={balance}
-          className="input max-w-[160px]"
+          className="input"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder={formatBDT(balance)}
           required
-        />
-        <input
-          className="input max-w-[200px]"
+        /></div>
+        <div><label className="label" htmlFor="payment-note">{t("note")}</label><input
+          id="payment-note"
+          className="input"
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder={t("note")}
-        />
-        <Button type="submit" className="btn-primary" disabled={busy || balance<=0}>
+        /></div>
+        <Button type="submit" className="btn-primary sm:col-span-2" disabled={busy || balance<=0}>
           {t("receive_payment")}
         </Button>
       </form>

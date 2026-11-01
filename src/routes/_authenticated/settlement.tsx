@@ -145,7 +145,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     <AppShell title={t("settlement_title")}>
       <h1 className="page-title mb-4">{t("settlement_title")}</h1>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="stat-card">
           <div className="stat-value">{formatBDT(summary.cashCollected)}</div>
           <div className="stat-label">{t("dash_cash_collected")}</div>
@@ -233,8 +233,8 @@ function SalesmanSettlement({ userId }: { userId: string }) {
 
         {returns.map((r, idx) => (
           <div key={idx} className="mb-2 rounded-xl border border-border p-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+              <div className="min-w-0 break-words">
                 <div className="font-semibold text-foreground">{r.name}</div>
                 <div className="text-xs text-muted-foreground">
                   {r.units.length > 0
@@ -276,7 +276,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
 
         <h2 className="card-title mb-2 mt-4">{t("deposit_entry")}</h2>
         <form
-          className="mb-2 flex flex-wrap items-end gap-2"
+          className="mb-2 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
           onSubmit={(e) => {
             e.preventDefault();
             const n = Number(depositAmount);
@@ -286,21 +286,26 @@ function SalesmanSettlement({ userId }: { userId: string }) {
             setDepositNote("");
           }}
         >
-          <input
+          <div><label htmlFor="deposit-amount" className="label">{t("payment_amount")}</label><input
+            id="deposit-amount"
+            inputMode="decimal"
             type="number"
-            min="1"
-            className="input max-w-[160px]"
+            min="0.01"
+            step="0.01"
+            max={Math.max(0, summary.cashOnHand - deposits.reduce((n, dep) => n + dep.amount, 0))}
+            className="input"
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             placeholder={formatBDT(Math.max(0, summary.cashOnHand))}
             required
-          />
-          <input
-            className="input max-w-[180px]"
+          /></div>
+          <div><label htmlFor="deposit-note" className="label">{t("note")}</label><input
+            id="deposit-note"
+            className="input"
             value={depositNote}
             onChange={(e) => setDepositNote(e.target.value)}
             placeholder={t("note")}
-          />
+          /></div>
           <Button type="submit" className="btn-secondary btn-sm">
             {t("add")}
           </Button>
