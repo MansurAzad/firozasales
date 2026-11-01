@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Audit offline-to-online sync, fix retry/concurrency/account safety issues and verify real reconnection without fictitious financial posting.
 - [x] Apply supplied company logo to login, app header, every business paper, Excel/PDF exports, favicon and installed app icons; verify authenticated previews/downloads and short-screen login without horizontal overflow.
 - [x] Implement PWA manifest/icons, guarded generated offline worker and anonymous SPA shell; account-scoped IndexedDB snapshot/outbox, atomic catalog synchronization, cached IMEI checks, online-only security actions and provisional exports; 55 tests passed and authenticated local entry, PDF/Excel and first-use validation verified without posting test financial data.
 - [ ] Verify installed published-app cold offline launch and real phone camera/share/print — requires publishing these changes and a real device; preview deliberately never registers the offline worker.
