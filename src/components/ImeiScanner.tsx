@@ -1,5 +1,7 @@
 import { Camera, Keyboard } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+
+import { Button } from "@/components/ui/button";
 
 import { useLang } from "@/lib/i18n";
 import { isPlausibleImei, normalizeImei } from "@/lib/imei";
@@ -28,20 +30,14 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState("");
   const [signal, setSignal] = useState<ImeiCheckResult | null>(null);
+  const regionId = `imei-${useId().replace(/:/g, "")}`;
+  const busyRef = useRef(false);
+  const checkRef = useRef(check);
+  const acceptedRef = useRef(onAccepted);
+  checkRef.current = check;
+  acceptedRef.current = onAccepted;
   const scannerRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
   const lastCodeRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
-
-  useEffect(() => {
-    return () => {
-      const s = scannerRef.current;
-      if (s) {
-        s.stop()
-          .then(() => s.clear())
-          .catch(() => {});
-        scannerRef.current = null;
-      }
-    };
-  }, []);
 
   function vibrateError() {
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -50,6 +46,7 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
   }
 
   async function handleCode(raw: string) {
+    if (busyRef.current) return;
     const code = normalizeImei(raw);
     const now = Date.now();
     if (code === lastCodeRef.current.code && now - lastCodeRef.current.at < 2000) {
@@ -64,87 +61,78 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
       return;
     }
 
+    busyRef.current = true;
     let result: ImeiCheckResult;
     try {
-      result = await check(code);
+      result = await checkRef.current(code);
     } catch {
       result = { ok: false, message: t("imei_unknown") };
     }
+    busyRef.current = false;
     setSignal(result);
     if (result.ok) {
-      onAccepted?.(code);
+      acceptedRef.current?.(code);
     } else {
       vibrateError();
     }
   }
 
-  async function startScan() {
-    setScanning(true);
-    setSignal(null);
-    try {
-      // Browser-only library: dynamic import keeps it out of the SSR graph.
-      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode("imei-scanner-region", {
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.ITF,
-        ],
-        verbose: false,
-      });
-      scannerRef.current = scanner as unknown as {
-        stop: () => Promise<void>;
-        clear: () => void;
-      };
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 170 } },
-        (decodedText: string) => void handleCode(decodedText),
-        () => {}, // per-frame decode failures are normal
-      );
-    } catch {
-      setScanning(false);
-      setSignal({ ok: false, message: t("camera_error") });
-      vibrateError();
+  useEffect(() => {
+    if (!scanning) return;
+    let cancelled = false;
+    let instance: { stop: () => Promise<void>; clear: () => void } | null = null;
+    let started = false;
+    async function release() {
+      if (!instance) return;
+      try { if (started) await instance.stop(); instance.clear(); } catch {}
+      if (scannerRef.current === instance) scannerRef.current = null;
     }
-  }
-
-  async function stopScan() {
-    const s = scannerRef.current;
-    if (s) {
+    async function start() {
       try {
-        await s.stop();
-        s.clear();
-      } catch {}
-      scannerRef.current = null;
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+        if (cancelled) return;
+        const scanner = new Html5Qrcode(regionId, {
+          formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.ITF], verbose: false,
+        });
+        instance = scanner;
+        scannerRef.current = scanner;
+        await scanner.start({ facingMode: "environment" }, {
+          fps: 10,
+          qrbox: (width: number, height: number) => ({width: Math.min(260, Math.floor(width * 0.85)), height: Math.min(170, Math.floor(height * 0.7))}),
+        }, (text: string) => { if (!cancelled) void handleCode(text); }, () => {});
+        started = true;
+        if (cancelled) await release();
+      } catch {
+        await release();
+        if (!cancelled) { setScanning(false); setSignal({ok:false,message:t("camera_error")}); vibrateError(); }
+      }
     }
-    setScanning(false);
-  }
+    void start();
+    return () => { cancelled = true; if (started) void release(); };
+  }, [scanning, regionId]);
+
+  function startScan() { setSignal(null); setScanning(true); }
+  function stopScan() { setScanning(false); }
 
   return (
     <div className="rounded-xl border border-border bg-secondary/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         {!scanning ? (
-          <button type="button" onClick={startScan} className="btn-primary btn-sm">
+          <Button type="button" onClick={startScan} className="btn-primary btn-sm">
             <Camera className="h-4 w-4" /> {t("scan")}
-          </button>
+          </Button>
         ) : (
-          <button type="button" onClick={stopScan} className="btn-outline btn-sm">
+          <Button type="button" onClick={stopScan} className="btn-outline btn-sm">
             {t("stop_scan")}
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="button"
           onClick={() => setManualOpen((v) => !v)}
           className="btn-outline btn-sm"
         >
           <Keyboard className="h-4 w-4" /> {t("manual_entry")}
-        </button>
+        </Button>
       </div>
 
       {hint ? <p className="mb-2 text-xs text-muted-foreground">{hint}</p> : null}
@@ -152,7 +140,7 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
       {scanning ? (
         <div className="mb-2">
           <div
-            id="imei-scanner-region"
+            id={regionId}
             className="mx-auto max-w-sm overflow-hidden rounded-lg"
           />
           <p className="mt-1 text-center text-xs text-muted-foreground">
@@ -175,9 +163,10 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
                 setManual("");
               }
             }}
+            aria-label="IMEI"
             placeholder="IMEI"
           />
-          <button
+          <Button
             type="button"
             className="btn-secondary btn-sm shrink-0"
             onClick={() => {
@@ -186,7 +175,7 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
             }}
           >
             {t("submit")}
-          </button>
+          </Button>
         </div>
       ) : null}
 

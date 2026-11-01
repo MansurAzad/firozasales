@@ -10,6 +10,7 @@ export type Lang = "bn" | "en";
 
 const dict: Record<Lang, Record<string, string>> = {
   bn: {
+    nav_reports: "রিপোর্ট",
     appName: "FE MANAGEMENT",
     companyName: "FIROZA ENTERPRISE",
     invalid_cash: "টাকার পরিমাণ বাকি/হাতের টাকার সীমার মধ্যে দিন",
@@ -104,7 +105,7 @@ const dict: Record<Lang, Record<string, string>> = {
     add_product: "নতুন প্রোডাক্ট",
     category: "ক্যাটাগরি",
     cat_smartphone: "Smartphone (IMEI)",
-    cat_button_phone: "Button Phone",
+    cat_button_phone: "বাটন ফোন (IMEI ছাড়া)",
     add_imei: "IMEI যোগ করুন",
     imei_list_hint: "বক্সের বারকোড স্ক্যান করুন বা হাতে লিখুন",
     no_products: "কোনো প্রোডাক্ট নেই",
@@ -184,6 +185,7 @@ const dict: Record<Lang, Record<string, string>> = {
     imei_duplicate: "তালিকায় আগেই আছে",
   },
   en: {
+    nav_reports: "Reports",
     appName: "FE MANAGEMENT",
     companyName: "FIROZA ENTERPRISE",
     invalid_cash: "Enter a valid amount within the due / cash balance",
@@ -273,7 +275,7 @@ const dict: Record<Lang, Record<string, string>> = {
     add_product: "New product",
     category: "Category",
     cat_smartphone: "Smartphone (IMEI)",
-    cat_button_phone: "Button phone",
+    cat_button_phone: "Button phone (no IMEI)",
     add_imei: "Add IMEIs",
     imei_list_hint: "Scan the box barcode or type the IMEI",
     no_products: "No products yet",

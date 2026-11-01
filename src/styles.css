@@ -192,3 +192,48 @@
     @apply py-2 text-sm text-foreground;
   }
 }
+
+:root { --paper: oklch(1 0 0); --paper-ink: oklch(0.22 0.02 210); --paper-line: oklch(0.84 0.02 200); --paper-accent: oklch(0.42 0.085 200); }
+.paper-scroll { overflow-x: auto; container-type: inline-size; }
+.business-paper { width: 794px; margin-inline: auto; }
+.paper-page { position: relative; box-sizing: border-box; width: 794px; height: 1123px; padding: 42px; margin-bottom: 24px; background: var(--paper); color: var(--paper-ink); font-size: 11px; }
+.paper-brand { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid var(--paper-accent); padding-bottom: 22px; }
+.paper-brand h2 { font-size: 26px; font-weight: 800; color: var(--paper-accent); }
+.paper-brand p { margin-top: 4px; font-size: 12px; }
+.paper-monogram { display: grid; place-items: center; width: 58px; height: 58px; border: 2px solid var(--paper-accent); font-size: 24px; font-weight: 800; color: var(--paper-accent); }
+.paper-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding-block: 20px 12px; }
+.paper-heading h3 { font-size: 17px; font-weight: 700; }
+.paper-subtitle { margin-block: 8px 18px; }
+.paper-details { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; font-size: 11px; margin-block: 8px 24px; }
+.paper-details p { margin-block: 4px; overflow-wrap: anywhere; }
+.paper-table { table-layout: fixed; width: 100%; border-collapse: collapse; font-size: 10px; }
+.paper-table th,.paper-table td { border: 1px solid var(--paper-line); padding: 8px 5px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.paper-table th { color: var(--paper-accent); font-weight: 700; }
+.paper-table th:first-child { width: 26px; }
+.paper-table td { line-height: 1.45; }
+.paper-totals { margin-top: 18px; margin-left: auto; width: 330px; font-size: 12px; }
+.paper-totals p { display: flex; justify-content: space-between; gap: 18px; padding-block: 8px; border-bottom: 1px solid var(--paper-line); }
+.paper-note { margin-top: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.paper-signatures { display: flex; justify-content: space-between; margin-top: 75px; gap: 26px; }
+.paper-signatures span { border-top: 1px solid var(--paper-line); padding-top: 8px; flex: 1; text-align: center; }
+.paper-footer { position: absolute; bottom: 28px; left: 42px; right: 42px; display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--paper-line); padding-top: 10px; font-size: 9px; }
+.paper-letter { font-size: 13px; line-height: 1.8; }
+.paper-letter p { margin-top: 14px; }
+.paper-letter h4 { margin-block: 24px; font-weight: 700; }
+.paper-letter div { white-space: pre-wrap; overflow-wrap: anywhere; }
+@container (max-width: 793px) { .business-paper { zoom: 0.9; } }
+@container (max-width: 714px) { .business-paper { zoom: 0.8; } }
+@container (max-width: 635px) { .business-paper { zoom: 0.7; } }
+@container (max-width: 556px) { .business-paper { zoom: 0.6; } }
+@container (max-width: 477px) { .business-paper { zoom: 0.5; } }
+@container (max-width: 397px) { .business-paper { zoom: 0.4; } }
+@page { size: A4; margin: 0; }
+@media print {
+  body { background: var(--paper); }
+  header:not(.paper-brand),nav,.print-hidden { display: none !important; }
+  .page { max-width: none; padding: 0; margin: 0; }
+  .paper-scroll { overflow: visible; }
+  .business-paper { width: 210mm; margin: 0; zoom: 1; }
+  .paper-page { width: 210mm; height: 297mm; margin: 0; break-after: page; print-color-adjust: exact; }
+  .paper-page:last-child { break-after: auto; }
+}
