@@ -15,6 +15,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { registerOfflineApp } from '@/lib/pwa';
 
 function NotFoundComponent() {
   return (
@@ -94,6 +95,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: 'theme-color', content: '#156b70' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -111,6 +114,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: 'manifest', href: '/manifest.webmanifest' },
+      { rel: 'apple-touch-icon', href: '/icons/fe-192.png' },
     ],
   }),
   shellComponent: RootShell,
@@ -138,6 +143,7 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    void registerOfflineApp().catch(console.error);
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {

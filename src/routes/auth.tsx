@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { firstUseMessage, isOffline, onlineRequired } from '@/lib/offline-store';
+import { localAccess } from '@/lib/offline';
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -35,9 +37,17 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const [offline, setOffline] = useState(false);
+  const [canOpen, setCanOpen] = useState(false);
+  useEffect(() => {
+    const update = () => { setOffline(isOffline()); void localAccess().then(role => setCanOpen(!!role)); };
+    update(); window.addEventListener('online', update); window.addEventListener('offline', update);
+    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (isOffline()) { toast.error(firstUseMessage); return; }
     setBusy(true);
     try {
       if (mode === "signin") {
@@ -101,6 +111,7 @@ function AuthPage() {
           </div>
         ) : (
           <div className="card">
+            {offline && <div role="alert" className="mb-4 text-sm text-warning-foreground">{canOpen ? 'সংরক্ষিত হিসাব প্রস্তুত / Saved accounts ready' : firstUseMessage}{canOpen && <Button className="mt-3 w-full" onClick={() => navigate({ to: '/dashboard' })}>সংরক্ষিত হিসাব খুলুন / Open saved accounts</Button>}</div>}
             <div className="mb-4 flex rounded-xl bg-muted p-1">
               <Button
                 variant="ghost"
@@ -172,7 +183,7 @@ function AuthPage() {
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 />
               </div>
-              <Button type="submit" className="btn-primary w-full" disabled={busy}>
+              <Button type="submit" className="btn-primary w-full" disabled={busy || offline}>
                 {busy
                   ? t("loading")
                   : mode === "signin"
