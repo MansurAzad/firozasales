@@ -16,4 +16,5 @@ export async function registerOfflineApp() {
     return;
   }
   await navigator.serviceWorker.register('/sw.js');
+  if (navigator.storage?.persist) await navigator.storage.persist();
 }

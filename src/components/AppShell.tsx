@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { OfflineStatus } from './OfflineStatus';
-import { currentLocalAccount } from '@/lib/offline';
+import { currentLocalAccount, forgetLocalIdentity } from '@/lib/offline';
 import { clearAccount } from '@/lib/offline-store';
 
 interface AppShellProps {
@@ -55,6 +55,7 @@ export function AppShell({ title, children }: AppShellProps) {
     if (local && !local.entries.length) await clearAccount(local.role.userId);
     await queryClient.cancelQueries();
     queryClient.clear();
+    forgetLocalIdentity();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }

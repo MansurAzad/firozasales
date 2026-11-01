@@ -4,17 +4,26 @@ import type { MyRole } from './role';
 import type { Json } from '@/integrations/supabase/types';
 import { firstUseMessage, isOffline, projectEntries, readAccount, writeAccount, type LocalEntry, type LocalAccount } from './offline-store';
 
-export async function sessionId() { const { data } = await supabase.auth.getSession(); return data.session?.user.id; }
+const identityKey = 'fe-offline-account';
+export async function sessionId() {
+  // Local identity is a device-view selector only; server authorization never trusts it.
+  if (isOffline()) return localStorage.getItem(identityKey) ?? undefined;
+  const { data } = await supabase.auth.getSession(); return data.session?.user.id;
+}
+export function forgetLocalIdentity() { localStorage.removeItem(identityKey); }
 export async function localAccess() {
   const id = await sessionId();
   const account = id ? await readAccount(id) : undefined;
   return account?.role.isActive && account.snapshot ? account.role : null;
 }
-export async function saveRole(role: MyRole) { await writeAccount(role.userId, current => ({ entries: [], extras: {}, ...current, role })); }
+export async function saveRole(role: MyRole) {
+  await writeAccount(role.userId, current => ({ entries: [], extras: {}, ...current, role }));
+  localStorage.setItem(identityKey, role.userId);
+}
 export async function cachedRead<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const id = await sessionId(); if (!id) throw new Error(firstUseMessage);
   const account = await readAccount(id);
-  if (!isOffline()) {
+  if (!isOffline() && !account?.entries.length) {
     const value = await fetcher();
     if (account) await writeAccount(id, current => ({ ...current ?? account, extras: { ...(current?.extras ?? {}), [key]: value } }));
     return value;
@@ -31,11 +40,12 @@ async function serverSnapshot(): Promise<AccountingSnapshot> {
 export async function offlineSnapshot(): Promise<AccountingSnapshot> {
   const id = await sessionId(); if (!id) throw new Error(firstUseMessage);
   let account = await readAccount(id);
-  if (!isOffline()) {
+  if (!isOffline() && !account?.entries.length) {
     const snapshot = await serverSnapshot();
     const profile = snapshot.profiles.find(p => p.id === id);
     const role: MyRole = { userId: id, isAdmin: snapshot.roles.some(r => r.user_id === id && r.role === 'admin'), fullName: profile?.full_name ?? '', isActive: profile?.is_active === true };
     await writeAccount(id, current => ({ entries: [], extras: {}, ...current, snapshot, role, updatedAt: new Date().toISOString() }));
+    localStorage.setItem(identityKey, id);
     account = await readAccount(id);
   }
   if (!account?.snapshot || !account.role.isActive) throw new Error(firstUseMessage);
