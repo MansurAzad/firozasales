@@ -1,0 +1,14 @@
+{
+  "id": "/",
+  "name": "FE MANAGEMENT — FIROZA ENTERPRISE",
+  "short_name": "FE MANAGEMENT",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#156b70",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "/icons/fe-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/fe-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
