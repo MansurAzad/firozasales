@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useLang } from "@/lib/i18n";
+import { onlineRequired } from "@/lib/offline-store";
 import { resetSalesmanPassword } from "@/lib/admin.functions";
 
 export function SrPasswordReset({ userId, name, email }: { userId: string; name: string; email: string }) {
@@ -27,6 +28,7 @@ export function SrPasswordReset({ userId, name, email }: { userId: string; name:
           if (password !== confirm) { setError(t("password_mismatch")); return; }
           setBusy(true); setError("");
           try {
+            onlineRequired();
             const result = await reset({ data: { userId, password } });
             if (!result.ok) { setError(t("password_reset_failed")); return; }
             toast.success(t("password_updated")); close();

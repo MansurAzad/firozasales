@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_requests: {
+        Row: {
+          actor_id: string
+          created_at: string
+          payload: Json
+          request_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          payload: Json
+          request_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          payload?: Json
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_requests_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposits: {
         Row: {
           amount: number
@@ -554,6 +583,10 @@ export type Database = {
       issue_imei: {
         Args: { p_imei: string; p_issue_id: string }
         Returns: string
+      }
+      post_catalog: {
+        Args: { p_payload: Json; p_request_id: string }
+        Returns: undefined
       }
       post_transaction: {
         Args: { p_kind: string; p_payload: Json; p_request_id: string }

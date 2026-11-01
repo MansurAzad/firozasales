@@ -15,6 +15,16 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { registerOfflineApp } from '@/lib/pwa';
+import { forgetLocalIdentity } from '@/lib/offline';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@fontsource/noto-sans-bengali/400.css';
+import '@fontsource/noto-sans-bengali/500.css';
+import '@fontsource/noto-sans-bengali/600.css';
+import '@fontsource/noto-sans-bengali/700.css';
 
 function NotFoundComponent() {
   return (
@@ -94,23 +104,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: 'theme-color', content: '#156b70' },
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
     ],
     links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap",
-      },
       {
         rel: "stylesheet",
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: 'manifest', href: '/manifest.webmanifest' },
+      { rel: 'apple-touch-icon', href: '/icons/fe-192.png' },
     ],
   }),
   shellComponent: RootShell,
@@ -138,9 +142,11 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    void registerOfflineApp().catch(console.error);
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') { forgetLocalIdentity(); queryClient.clear(); }
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") {
         return;
       }

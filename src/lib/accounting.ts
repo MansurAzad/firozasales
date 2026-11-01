@@ -1,6 +1,6 @@
-import { supabase } from '@/integrations/supabase/client';
 import type { Database, Json } from '@/integrations/supabase/types';
 import { useRef } from 'react';
+import { offlineSnapshot, postOfflineAware } from './offline';
 
 type Row<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
 export interface AccountingSnapshot {
@@ -11,11 +11,7 @@ export interface AccountingSnapshot {
   settlements: Row<'settlements'>[];
 }
 export async function fetchAccounting(): Promise<AccountingSnapshot> {
-  const { data, error } = await supabase.rpc('accounting_snapshot');
-  if (error) throw new Error(error.message);
-  const keys = ['profiles','roles','products','imeiUnits','retailers','sales','saleItems','payments','deposits','returns','stockIssues','issueItems','settlements'];
-  if (!data || typeof data !== 'object' || Array.isArray(data) || keys.some(k => !Array.isArray(data[k]))) throw new Error('Could not read complete accounts');
-  return data as unknown as AccountingSnapshot;
+  return offlineSnapshot();
 }
 /** Preserve an idempotency key after a lost response; changed input starts a new posting. */
 export function usePosting() {
@@ -25,8 +21,7 @@ export function usePosting() {
     if (pending.current?.signature !== signature) pending.current = { signature, id: crypto.randomUUID() };
     const request = pending.current;
     if (!request) throw new Error('Could not start transaction');
-    const { data, error } = await supabase.rpc('post_transaction', { p_kind: kind, p_payload: payload, p_request_id: request.id });
-    if (error) throw new Error(error.message);
+    const data = await postOfflineAware(kind, payload, request.id);
     pending.current = null;
     return data;
   };

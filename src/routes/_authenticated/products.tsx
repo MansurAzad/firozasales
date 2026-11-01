@@ -7,7 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
-import { supabase } from "@/integrations/supabase/client";
+import { catalogWrite, findImei } from "@/lib/offline";
+import { fetchAccounting } from "@/lib/accounting";
 import { formatBDT } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Pencil, Power, Trash2, ScanBarcode } from "lucide-react";
@@ -37,24 +38,22 @@ function ProductsPage() {
   const data = useQuery({
     queryKey: ["products-page"],
     queryFn: async () => {
-      const [productsRes, imeiRes] = await Promise.all([
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
-        supabase.from("imei_units").select("id, product_id, imei, status, current_salesman"),
-      ]);
-      return { products: productsRes.data ?? [], imeiUnits: imeiRes.data ?? [] };
+      const d = await fetchAccounting();
+      return { products: d.products, imeiUnits: d.imeiUnits };
     },
   });
 
+  if (data.error) throw data.error;
   const isAdmin = role.data?.isAdmin === true;
 
   return (
     <AppShell title={t("products_title")}>
       <h1 className="page-title mb-4">{t("products_title")}</h1>
-      {isAdmin ? <AddProduct onDone={() => queryClient.invalidateQueries({ queryKey: ["products-page"] })} /> : null}
+      {isAdmin ? <AddProduct onDone={() => queryClient.invalidateQueries()} /> : null}
       <ProductList
         data={data.data}
         isAdmin={isAdmin}
-        onChange={() => queryClient.invalidateQueries({ queryKey: ["products-page"] })}
+        onChange={() => queryClient.invalidateQueries()}
       />
     </AppShell>
   );
@@ -80,18 +79,8 @@ function AddProduct({ onDone }: { onDone: () => void }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { data: product, error } = await supabase
-        .from("products")
-        .insert({ name, model, price: Number(price) || 0, category })
-        .select("id")
-        .single();
-      if (error) throw error;
-      if (category === "smartphone" && imeis.length > 0) {
-        const { error: imeiError } = await supabase.from("imei_units").insert(
-          imeis.map((imei) => ({ product_id: product.id, imei })),
-        );
-        if (imeiError) throw imeiError;
-      }
+      const id = crypto.randomUUID();
+      await catalogWrite('products', 'insert', [{ id, name, model, price: Number(price), category }], category === 'smartphone' ? imeis.map(imei => ({ id: crypto.randomUUID(), product_id: id, imei })) : []);
     },
     onSuccess: () => {
       toast.success(t("product_saved"));
@@ -107,11 +96,7 @@ function AddProduct({ onDone }: { onDone: () => void }) {
 
   const checkNewImei = async (code: string) => {
     if (imeis.includes(code)) return { ok: false, message: t("imei_duplicate") };
-    const { data: unit } = await supabase
-      .from("imei_units")
-      .select("id")
-      .eq("imei", code)
-      .maybeSingle();
+    const { data: unit } = await findImei(code);
     if (unit) return { ok: false, message: t("imei_duplicate") };
     return { ok: true, message: t("imei_valid") };
   };
@@ -214,11 +199,7 @@ function ProductList({
 
   const update = useMutation({
     mutationFn: async (row: Omit<ProductRow, "price"> & { price: string }) => {
-      const { error } = await supabase
-        .from("products")
-        .update({ name: row.name, model: row.model, price: Number(row.price) })
-        .eq("id", row.id);
-      if (error) throw error;
+      await catalogWrite('products', 'update', [{ id: row.id, name: row.name, model: row.model, price: Number(row.price) }]);
     },
     onSuccess: () => {
       setEditing(null);
@@ -229,11 +210,7 @@ function ProductList({
 
   const toggleActive = useMutation({
     mutationFn: async (row: ProductRow) => {
-      const { error } = await supabase
-        .from("products")
-        .update({ is_active: !row.is_active })
-        .eq("id", row.id);
-      if (error) throw error;
+      await catalogWrite('products', 'update', [{ id: row.id, is_active: !row.is_active }]);
     },
     onSuccess: onChange,
     onError: (e: Error) => toast.error(e.message),
@@ -241,8 +218,7 @@ function ProductList({
 
   const remove = useMutation({
     mutationFn: async (row: ProductRow) => {
-      const { error } = await supabase.from("products").delete().eq("id", row.id);
-      if (error) throw error;
+      await catalogWrite('products', 'delete', [{ id: row.id }]);
     },
     onSuccess: onChange,
     onError: (e: Error) => toast.error(e.message),
@@ -250,21 +226,16 @@ function ProductList({
 
   const addImei = useMutation({
     mutationFn: async ({ productId, imei }: { productId: string; imei: string }) => {
-      const { error } = await supabase.from("imei_units").insert({ product_id: productId, imei });
-      if (error) throw error;
+      await catalogWrite('imeiUnits', 'insert', [{ product_id: productId, imei }]);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products-page"] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const checkStockImei = async (code: string) => {
-    const { data: unit } = await supabase
-      .from("imei_units")
-      .select("id, product_id, status")
-      .eq("imei", code)
-      .maybeSingle();
+    const { data: unit } = await findImei(code);
     if (unit) return { ok: false, message: t("imei_duplicate") };
     return { ok: true, message: t("imei_valid") };
   };

@@ -1,7 +1,11 @@
 import { formatBDT } from '@/lib/money';
 import type { BusinessDocument, Report } from '@/lib/reports';
+import { useEffect, useState } from 'react';
+import { currentLocalAccount } from '@/lib/offline';
 
 export function BusinessPaper({report,document:doc,subtitle,letter}:{report:Report;document?:BusinessDocument | undefined;subtitle?:string | undefined;letter?:{subject:string;body:string;date:string;recipient:string} | undefined}) {
+  const [pending, setPending] = useState(false);
+  useEffect(() => { const update = () => { void currentLocalAccount().then(a => setPending(!!a?.entries.length)); }; update(); window.addEventListener('fe-local-change', update); return () => window.removeEventListener('fe-local-change', update); }, []);
   const chunks: Report['rows'][]=[];
   const perPage = doc ? 8 : 6;
   for(let i=0;i<report.rows.length;i+=perPage)chunks.push(report.rows.slice(i,i+perPage));
@@ -9,6 +13,7 @@ export function BusinessPaper({report,document:doc,subtitle,letter}:{report:Repo
   return <>{chunks.map((rows,page)=><article className="paper-page" key={page}>
     <header className="paper-brand"><div className="paper-monogram">FE</div><div><h2>FIROZA ENTERPRISE</h2><p>FE MANAGEMENT</p></div></header>
     <div className="paper-heading"><h3>{report.title}</h3><span>{page+1} / {chunks.length}</span></div>
+    {pending && <p className="paper-note">PROVISIONAL / অনলাইনে যাচাই বাকি — Local entries included</p>}
     {subtitle&&<p className="paper-subtitle">{subtitle}</p>}
     {doc&&doc.reference&&<div className="paper-details"><div><strong>To / প্রাপক:</strong> {doc.party}{doc.address&&<p>{doc.address}</p>}{doc.phone&&<p>{doc.phone}</p>}{doc.sr&&<p>SR: {doc.sr}</p>}</div><div><p><strong>Ref:</strong> {doc.reference}</p><p><strong>Date:</strong> {doc.date}</p></div></div>}
     {letter?<div className="paper-letter"><p>Date: {letter.date}</p><p>To: {letter.recipient}</p><h4>Subject / বিষয়: {letter.subject}</h4><div>{letter.body}</div></div>:<>

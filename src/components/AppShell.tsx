@@ -9,6 +9,9 @@ import { useMyRole } from "@/lib/role";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { OfflineStatus } from './OfflineStatus';
+import { currentLocalAccount, forgetLocalIdentity } from '@/lib/offline';
+import { clearAccount } from '@/lib/offline-store';
 
 interface AppShellProps {
   title: string;
@@ -47,8 +50,12 @@ export function AppShell({ title, children }: AppShellProps) {
     : SALESMAN_NAV;
 
   async function handleSignOut() {
+    const local = await currentLocalAccount();
+    if (local?.entries.length && !window.confirm('লোকাল এন্ট্রি সাইন আউটের পরও এই ডিভাইসে থাকবে; একই অ্যাকাউন্টে ফিরে মিলিয়ে নিন। / Pending entries will remain on this device. Sign back into the same account to sync.')) return;
+    if (local && !local.entries.length) await clearAccount(local.role.userId);
     await queryClient.cancelQueries();
     queryClient.clear();
+    forgetLocalIdentity();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
@@ -91,7 +98,7 @@ export function AppShell({ title, children }: AppShellProps) {
         </div>
       </header>
 
-      <main className="page">{role.data && !role.data.isActive ? <p className="text-destructive">{t("account_inactive")}</p> : children}</main>
+      <main className="page"><OfflineStatus />{role.data && !role.data.isActive ? <p className="text-destructive">{t("account_inactive")}</p> : children}</main>
 
       <nav aria-label={t("main_navigation")} className="bottom-navigation fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur">
         <div className="mx-auto hidden max-w-3xl items-stretch justify-around sm:flex">
