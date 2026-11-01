@@ -1,4 +1,6 @@
 # Tasks
+- [ ] Verify retailer collections and SR cash deposits to the stock house; make existing entry points clearer.
+- [ ] Improve all mobile pages and add icon-based, role-aware bottom navigation; verify authenticated mobile views.
 - [x] Improve mobile scanner lifecycle/duplicate handling; verify camera start/stop and IMEI-free button-phone controls and existing return read-back.
 - [x] Add scoped Excel/PDF/print reports and branded invoices, receipts, issue/return vouchers and letterhead.
 - [x] Verify authenticated report/document read-back, real XLSX/PDF downloads, print visibility and scanner/accounting tests.
