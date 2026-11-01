@@ -6,11 +6,12 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { BusinessPaper } from '@/components/BusinessPaper';
+import { ReportShare } from '@/components/ReportShare';
 import { fetchAccounting } from '@/lib/accounting';
 import { useLang } from '@/lib/i18n';
 import { useMyRole } from '@/lib/role';
 import { buildDocument, buildReport, displayDate, documentTitles, reference, reportTitles, type DocumentKind, type ReportKind } from '@/lib/reports';
-import { exportExcel, exportPdf } from '@/lib/report-export';
+import { createExcelFile, createPdfFile, exportExcel, exportPdf } from '@/lib/report-export';
 const reportsQuery=queryOptions({queryKey:['business-reports'],queryFn:fetchAccounting});
 export const Route=createFileRoute('/_authenticated/reports')({
   head:()=>({meta:[{title:'Reports & Documents — FE MANAGEMENT'},{name:'description',content:'FIROZA ENTERPRISE accounts, Excel exports, PDF invoices, receipts and business stationery.'},{property:'og:title',content:'Reports & Documents — FE MANAGEMENT'},{property:'og:description',content:'Business reports, invoices, receipts and stock vouchers for FIROZA ENTERPRISE.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),
@@ -63,6 +64,13 @@ function ReportsPage(){
       {docKind!=='letterhead'||mode==='reports'?<Button variant="outline" disabled={!printable||busy||invalidRange} onClick={()=>void save('excel')}><FileSpreadsheet className="size-4"/>Excel</Button>:null}
       <Button variant="outline" disabled={!printable||busy||invalidRange} onClick={()=>void save('pdf')}><FileDown className="size-4"/>PDF</Button>
       <Button variant="outline" disabled={!printable||busy||invalidRange} onClick={()=>window.print()}><Printer className="size-4"/>{bn?'প্রিন্ট':'Print'}</Button>
+      <ReportShare key={`${mode}-${kind}-${docKind}-${selected}-${from}-${to}-${sr}-${dealer}-${subject}-${body}-${recipient}`} bn={bn} disabled={!printable||busy||invalidRange} title={printable?.title||''} allowExcel={mode==='reports'||docKind!=='letterhead'} prepare={async format=>{
+        if(!printable||invalidRange)throw new Error('Select a valid document');
+        const filename='FE-'+(mode==='reports'?kind:doc?.reference||docKind);
+        if(format==='excel')return createExcelFile(printable,filename);
+        if(!paper.current)throw new Error('Document is not ready');
+        return createPdfFile(paper.current,filename);
+      }}/>
       {busy&&<span role="status" className="text-sm text-muted-foreground">{bn?'ফাইল তৈরি হচ্ছে…':'Preparing file…'}</span>}
     </div></div>
     {printable?<div className="paper-scroll"><div ref={paper} className="business-paper"><BusinessPaper report={printable} document={mode==='documents'&&doc?doc:undefined} subtitle={subtitle} letter={mode==='documents'&&docKind==='letterhead'?{subject,body,recipient,date:new Date().toLocaleDateString('en-GB')}:undefined}/></div></div>:<p className="text-muted-foreground">{bn?'লেনদেন নির্বাচন করুন':'Select a transaction'}</p>}
