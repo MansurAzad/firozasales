@@ -17,6 +17,14 @@ describe('offline rules', () => {
     await writeAccount('persist', () => ({ role: actor, entries: [entry('payment', { retailer_id: 'r', amount: 3000 })], extras: {} }));
     expect((await readAccount('persist'))?.entries[0]?.payload).toEqual({ retailer_id: 'r', amount: 3000 });
   });
+  it('serializes concurrent updates without losing either entry', async () => {
+    await writeAccount('concurrent', () => ({ role: actor, entries: [], extras: {} }));
+    await Promise.all(['one', 'two'].map(id => writeAccount('concurrent', current => {
+      if (!current) throw new Error('Missing account');
+      return { ...current, entries: [...current.entries, { ...entry('payment', { amount: 1 }), id }] };
+    })));
+    expect((await readAccount('concurrent'))?.entries.map(e => e.id).sort()).toEqual(['one', 'two']);
+  });
   it('projects 3000 collection and 8000 deposit in order without changing saved base', () => {
     const d = base(), projected = projectEntries(d, [entry('payment', { retailer_id: 'r', amount: 3000 }), { ...entry('settlement', { returns: [], deposits: [{ amount: 8000 }] }), id: 'second' }], actor);
     expect(projected.payments[0]?.amount).toBe(3000); expect(projected.deposits[1]?.amount).toBe(8000); expect(d.payments).toHaveLength(0);

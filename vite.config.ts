@@ -15,10 +15,10 @@ export default defineConfig({
       devOptions: { enabled: false }, manifest: false,
       includeAssets: ['icons/*.png', 'manifest.webmanifest', 'offline.html'],
       workbox: {
-        globPatterns: ['**/*.{js,css,woff2,png,ico}'], maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        navigateFallback: null,
+        globPatterns: ['**/*.{js,css,woff2,png,ico}', '_shell.html'], maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        navigateFallback: '/_shell.html', navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
         runtimeCaching: [
-          { urlPattern: ({ request, url }) => request.mode === 'navigate' && url.origin === self.location.origin && !url.pathname.startsWith('/~oauth') && !url.pathname.startsWith('/api/'), handler: 'NetworkFirst', options: { cacheName: 'fe-navigation', networkTimeoutSeconds: 3, expiration: { maxEntries: 1 }, precacheFallback: { fallbackURL: '/offline.html' }, plugins: [{ cacheKeyWillBeUsed: async ({ request }) => new URL('/__fe_shell', request.url).href }] } },
+          { urlPattern: ({ request, url }) => request.mode === 'navigate' && url.origin === self.location.origin && !url.pathname.startsWith('/~oauth') && !url.pathname.startsWith('/api/'), handler: 'NetworkFirst', options: { cacheName: 'fe-navigation', networkTimeoutSeconds: 3, precacheFallback: { fallbackURL: '/_shell.html' }, plugins: [{ cacheWillUpdate: async () => null }] } },
           { urlPattern: ({ url }) => url.origin === self.location.origin && /\/assets\/.*-[A-Za-z0-9_-]{6,}\.(js|css|woff2)$/.test(url.pathname), handler: 'CacheFirst', options: { cacheName: 'fe-assets', expiration: { maxEntries: 250 } } },
           { urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'fe-fonts', expiration: { maxEntries: 30 } } },
         ],
@@ -26,6 +26,7 @@ export default defineConfig({
     })],
   },
   tanstackStart: {
+    spa: { enabled: true, maskPath: '/auth', prerender: { outputPath: '/_shell' } },
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
