@@ -115,7 +115,12 @@ async function runSync() {
         }
         await writeAccount(uid, current => {
           if (!current) throw new Error('Local account missing');
-          return { ...current, entries: current.entries.map(e => sameEntry(e, entry) ? { ...e, confirmed: true, error: undefined } : e) };
+          return { ...current, entries: current.entries.map(e => {
+            if (!sameEntry(e, entry)) return e;
+            const acknowledged = { ...e, confirmed: true };
+            delete acknowledged.error;
+            return acknowledged;
+          }) };
         });
       }
       // Atomic local replacement prevents double projection after an ambiguous network response.
