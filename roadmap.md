@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Add private PDF/Excel file sharing for all reports and business documents; verify native share, cancellation and download fallback.
 - [x] Verify existing retailer collections and SR cash deposits, amount limits and real balance read-back; clarify entry points. No new financial entries were posted during testing.
 - [x] Add role-aware icon bottom navigation and admin overflow sheet; improve mobile lists, summaries, forms and dialogs; verify admin/SR pages at 320, 390, 764 and 1280 widths with 34 passing tests.
 - [x] Improve mobile scanner lifecycle/duplicate handling; verify camera start/stop and IMEI-free button-phone controls and existing return read-back.
