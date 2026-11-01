@@ -21,6 +21,7 @@ const ADMIN_NAV = [
   { to: "/retailers", label: "nav_retailers" },
   { to: "/settlement", label: "nav_settlement" },
   { to: "/salesmen", label: "nav_salesmen" },
+  { to: "/reports", label: "nav_reports" },
 ] as const;
 
 const SALESMAN_NAV = [
@@ -28,6 +29,7 @@ const SALESMAN_NAV = [
   { to: "/sales", label: "nav_new_sale" },
   { to: "/retailers", label: "nav_retailers" },
   { to: "/settlement", label: "nav_settlement" },
+  { to: "/reports", label: "nav_reports" },
 ] as const;
 
 export function AppShell({ title, children }: AppShellProps) {
