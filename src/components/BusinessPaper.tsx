@@ -2,6 +2,7 @@ import { formatBDT } from '@/lib/money';
 import type { BusinessDocument, Report } from '@/lib/reports';
 import { useEffect, useState } from 'react';
 import { currentLocalAccount } from '@/lib/offline';
+import { CompanyLogo } from './CompanyLogo';
 
 export function BusinessPaper({report,document:doc,subtitle,letter}:{report:Report;document?:BusinessDocument | undefined;subtitle?:string | undefined;letter?:{subject:string;body:string;date:string;recipient:string} | undefined}) {
   const [pending, setPending] = useState(false);
@@ -11,7 +12,7 @@ export function BusinessPaper({report,document:doc,subtitle,letter}:{report:Repo
   for(let i=0;i<report.rows.length;i+=perPage)chunks.push(report.rows.slice(i,i+perPage));
   if(!chunks.length)chunks.push([]);
   return <>{chunks.map((rows,page)=><article className="paper-page" key={page}>
-    <header className="paper-brand"><div className="paper-monogram">FE</div><div><h2>FIROZA ENTERPRISE</h2><p>FE MANAGEMENT</p></div></header>
+    <header className="paper-brand"><CompanyLogo className="paper-logo" /><div><h2>FIROZA ENTERPRISE</h2><p>FE MANAGEMENT</p></div></header>
     <div className="paper-heading"><h3>{report.title}</h3><span>{page+1} / {chunks.length}</span></div>
     {pending && <p className="paper-note">PROVISIONAL / অনলাইনে যাচাই বাকি — Local entries included</p>}
     {subtitle&&<p className="paper-subtitle">{subtitle}</p>}

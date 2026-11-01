@@ -7,6 +7,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA, type VitePluginPWAAPI } from 'vite-plugin-pwa';
 import { existsSync } from 'node:fs';
+import companyLogo from './src/assets/firoza-logo.png.asset.json';
 
 export default defineConfig({
   vite: {
@@ -17,6 +18,7 @@ export default defineConfig({
       devOptions: { enabled: false }, manifest: false,
       includeAssets: ['icons/*.png', 'manifest.webmanifest', 'offline.html'],
       workbox: {
+        additionalManifestEntries: [{ url: companyLogo.url, revision: companyLogo.asset_id }],
         globPatterns: ['**/*.{js,css,woff2,png,ico}', '_shell.html'], maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // Only the NetworkFirst rule handles navigations; its fallback is the anonymous shell.
         navigateFallback: null,
@@ -33,6 +35,8 @@ export default defineConfig({
       buildApp: { order: 'post', async handler(builder) {
         const plugin = builder.config.plugins.find(p => p.name === 'vite-plugin-pwa');
         const api = plugin?.api as VitePluginPWAAPI | undefined;
+        // Preview development builds may intentionally omit all prerendered pages.
+        if (!existsSync('dist/client/_shell.html') && builder.config.mode === 'development') return;
         if (!existsSync('dist/client/_shell.html')) throw new Error('Offline anonymous shell was not generated');
         if (api) await api.generateSW();
       } },

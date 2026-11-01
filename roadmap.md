@@ -1,4 +1,5 @@
 # Tasks
+- [x] Apply supplied company logo to login, app header, every business paper, Excel/PDF exports, favicon and installed app icons; verify authenticated previews/downloads and short-screen login without horizontal overflow.
 - [x] Implement PWA manifest/icons, guarded generated offline worker and anonymous SPA shell; account-scoped IndexedDB snapshot/outbox, atomic catalog synchronization, cached IMEI checks, online-only security actions and provisional exports; 55 tests passed and authenticated local entry, PDF/Excel and first-use validation verified without posting test financial data.
 - [ ] Verify installed published-app cold offline launch and real phone camera/share/print — requires publishing these changes and a real device; preview deliberately never registers the offline worker.
 - [x] Add local PDF/Excel sharing for all reports and documents; verify 17 generated files with simulated Web Share, cancellation, actual fallback download and mobile dialog; 39 tests pass. Real device share-sheet delivery remains device-dependent.

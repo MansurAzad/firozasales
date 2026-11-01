@@ -9,6 +9,7 @@ import { useMyRole } from "@/lib/role";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { CompanyLogo } from '@/components/CompanyLogo';
 import { OfflineStatus } from './OfflineStatus';
 import { currentLocalAccount, forgetLocalIdentity } from '@/lib/offline';
 import { clearAccount } from '@/lib/offline-store';
@@ -64,12 +65,15 @@ export function AppShell({ title, children }: AppShellProps) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2.5">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <CompanyLogo className="h-12 w-10" />
+            <div className="min-w-0">
             <div className="truncate text-sm font-bold text-primary">
               {t("appName")}
             </div>
             <div className="truncate text-xs text-muted-foreground">{title}</div>
             <div className="text-[10px] font-medium text-muted-foreground">{t("companyName")}</div>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button
