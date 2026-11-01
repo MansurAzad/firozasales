@@ -33,7 +33,7 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
       if (table !== 'products' && table !== 'retailers' && table !== 'imeiUnits') throw new Error('Invalid local table');
       const target = d[table] as unknown as Record<string, Json>[];
       for (const row of rows) {
-        const index = target.findIndex(r => r.id === row['id']);
+        const index = target.findIndex(r => r['id'] === row['id']);
         if (action === 'delete') { if (index >= 0) target.splice(index, 1); }
         else if (index >= 0) Object.assign(target[index] ?? {}, row);
         else target.push({ created_at: date, is_active: true, model: '', price: 0, phone: '', address: '', status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row });
