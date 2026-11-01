@@ -277,7 +277,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
                         },
                       ];
                     });
-                  })
+                  })}
             />
           ) : (
             <AddQtyReturn
