@@ -1,3 +1,4 @@
+import { fetchAccounting } from "@/lib/accounting";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -12,9 +13,9 @@ import { formatBDT, toNumber } from "@/lib/money";
 export const Route = createFileRoute("/_authenticated/retailers/")({
   head: () => ({
     meta: [
-      { title: "রিটেইলার — মোবাইল হিসাব" },
+      { title: "রিটেইলার — FE MANAGEMENT" },
       { name: "description", content: "Retailer list with balances and ledgers." },
-      { property: "og:title", content: "রিটেইলার — মোবাইল হিসাব" },
+      { property: "og:title", content: "রিটেইলার — FE MANAGEMENT" },
       { property: "og:description", content: "Retailer list with balances and ledgers." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -39,16 +40,7 @@ function RetailersPage() {
   const data = useQuery({
     queryKey: ["retailers-page", role.data?.userId],
     queryFn: async () => {
-      const [retailersRes, salesRes, paymentsRes] = await Promise.all([
-        supabase.from("retailers").select("id, name, phone, address, is_active").order("name"),
-        supabase.from("sales").select("id, retailer_id, salesman_id, total_amount, paid_amount"),
-        supabase.from("retailer_payments").select("id, retailer_id, salesman_id, amount"),
-      ]);
-      return {
-        retailers: retailersRes.data ?? [],
-        sales: salesRes.data ?? [],
-        payments: paymentsRes.data ?? [],
-      };
+      return fetchAccounting();
     },
   });
 

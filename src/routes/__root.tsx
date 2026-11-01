@@ -81,13 +81,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "মোবাইল হিসাব — Mobile Hisab" },
+      { title: "FE MANAGEMENT — FIROZA ENTERPRISE" },
       {
         name: "description",
         content:
           "Dealer থেকে salesman হয়ে retailer — মাল, টাকা, বাকি ও IMEI-সহ পুরো হিসাব এক অ্যাপে। Full hisab for mobile phone distribution with IMEI tracking.",
       },
-      { property: "og:title", content: "মোবাইল হিসাব — Mobile Hisab" },
+      { property: "og:title", content: "FE MANAGEMENT — FIROZA ENTERPRISE" },
       {
         property: "og:description",
         content: "Mobile phone distribution & salesman hisab with IMEI tracking.",

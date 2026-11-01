@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { fetchAccounting, dealerDues } from "./accounting";
 import { toNumber } from "./money";
 
 export function sumBy<T>(rows: T[], f: (row: T) => number): number {
@@ -8,7 +8,7 @@ export function sumBy<T>(rows: T[], f: (row: T) => number): number {
 export interface AdminData {
   salesmen: { id: string; full_name: string; is_active: boolean }[];
   products: { id: string; name: string; model: string; price: number; category: string; is_active: boolean }[];
-  imeiUnits: { id: string; product_id: string; imei: string; status: string; current_salesman: string | null }[];
+  imeiUnits: { id: string; product_id: string; imei: string; status: string; is_damaged: boolean; current_salesman: string | null }[];
   retailers: { id: string; name: string; is_active: boolean }[];
   sales: { id: string; salesman_id: string; retailer_id: string; total_amount: number; paid_amount: number; sold_at: string }[];
   payments: { id: string; salesman_id: string; retailer_id: string; amount: number; paid_at: string }[];
@@ -33,36 +33,9 @@ export function issuedBySalesman(d: AdminData): Map<string, number> {
 
 /** Everything the admin dashboards need, read once and aggregated client-side. */
 export async function fetchAdminData(): Promise<AdminData> {
-  const [profilesRes, rolesRes, productsRes, imeiRes, retailersRes, salesRes, paymentsRes, depositsRes, issuesRes, issueItemsRes, saleItemsRes, returnsRes] =
-    await Promise.all([
-      supabase.from("profiles").select("id, full_name, is_active"),
-      supabase.from("user_roles").select("user_id, role").eq("role", "salesman"),
-      supabase.from("products").select("id, name, model, price, category, is_active").order("name"),
-      supabase.from("imei_units").select("id, product_id, imei, status, current_salesman"),
-      supabase.from("retailers").select("id, name, is_active").order("name"),
-      supabase.from("sales").select("id, salesman_id, retailer_id, total_amount, paid_amount, sold_at"),
-      supabase.from("retailer_payments").select("id, salesman_id, retailer_id, amount, paid_at"),
-      supabase.from("deposits").select("id, salesman_id, amount, deposited_at"),
-      supabase.from("stock_issues").select("id, salesman_id"),
-      supabase.from("stock_issue_items").select("id, issue_id, product_id, quantity"),
-      supabase.from("sale_items").select("id, sale_id, product_id, quantity"),
-      supabase.from("returns").select("id, salesman_id, product_id, quantity"),
-    ]);
-
-  const salesmanIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
-  return {
-    salesmen: (profilesRes.data ?? []).filter((p) => salesmanIds.has(p.id)),
-    products: productsRes.data ?? [],
-    imeiUnits: imeiRes.data ?? [],
-    retailers: retailersRes.data ?? [],
-    sales: salesRes.data ?? [],
-    payments: paymentsRes.data ?? [],
-    deposits: depositsRes.data ?? [],
-    stockIssues: issuesRes.data ?? [],
-    issueItems: issueItemsRes.data ?? [],
-    saleItems: saleItemsRes.data ?? [],
-    returns: returnsRes.data ?? [],
-  };
+  const d = await fetchAccounting();
+  const ids = new Set(d.roles.filter(r=>r.role==='salesman').map(r=>r.user_id));
+  return { ...d, salesmen: d.profiles.filter(p=>ids.has(p.id)) };
 }
 
 export interface SalesmanData {
@@ -100,72 +73,17 @@ export interface SalesmanData {
 
 /** All signed-in data for one salesman, used by dashboard and settlement. */
 export async function fetchSalesmanData(userId: string): Promise<SalesmanData> {
-  const [productsRes, retailersRes, salesRes, paymentsRes, depositsRes, returnsRes, issuesRes] =
-    await Promise.all([
-      supabase.from("products").select("id, name, price, category").order("name"),
-      supabase.from("retailers").select("id, name").order("name"),
-      supabase
-        .from("sales")
-        .select("id, retailer_id, total_amount, paid_amount, sold_at")
-        .eq("salesman_id", userId)
-        .order("sold_at", { ascending: false }),
-      supabase
-        .from("retailer_payments")
-        .select("id, retailer_id, amount, paid_at, note")
-        .eq("salesman_id", userId)
-        .order("paid_at", { ascending: false }),
-      supabase
-        .from("deposits")
-        .select("id, settlement_id, amount, deposited_at, note")
-        .eq("salesman_id", userId)
-        .order("deposited_at", { ascending: false }),
-      supabase
-        .from("returns")
-        .select(
-          "id, settlement_id, product_id, quantity, imei_unit_id, is_damaged, returned_at",
-        )
-        .eq("salesman_id", userId),
-      supabase
-        .from("stock_issues")
-        .select("id, issued_at")
-        .eq("salesman_id", userId)
-        .order("issued_at", { ascending: false }),
-    ]);
-
-  const issueIds = (issuesRes.data ?? []).map((r) => r.id);
-  const saleIds = (salesRes.data ?? []).map((r) => r.id);
-
-  const [issueItemsRes, saleItemsRes, imeiRes] = await Promise.all([
-    issueIds.length
-      ? supabase
-          .from("stock_issue_items")
-          .select("id, issue_id, product_id, quantity, imei_unit_id")
-          .in("issue_id", issueIds)
-      : Promise.resolve({ data: [] as never[] }),
-    saleIds.length
-      ? supabase
-          .from("sale_items")
-          .select("id, sale_id, product_id, quantity, unit_price")
-          .in("sale_id", saleIds)
-      : Promise.resolve({ data: [] as never[] }),
-    supabase
-      .from("imei_units")
-      .select("id, product_id, imei, status")
-      .eq("current_salesman", userId),
-  ]);
-
-  return {
-    products: productsRes.data ?? [],
-    retailers: retailersRes.data ?? [],
-    sales: salesRes.data ?? [],
-    saleItems: saleItemsRes.data ?? [],
-    payments: paymentsRes.data ?? [],
-    deposits: depositsRes.data ?? [],
-    returns: returnsRes.data ?? [],
-    issues: issuesRes.data ?? [],
-    issueItems: issueItemsRes.data ?? [],
-    imeiUnits: imeiRes.data ?? [],
-  };
+  const d = await fetchAccounting();
+  const sales = d.sales.filter(s=>s.salesman_id===userId);
+  const issues = d.stockIssues.filter(s=>s.salesman_id===userId);
+  const saleIds = new Set(sales.map(s=>s.id));
+  const issueIds = new Set(issues.map(s=>s.id));
+  return { ...d, sales, issues, saleItems: d.saleItems.filter(i=>saleIds.has(i.sale_id)),
+    issueItems: d.issueItems.filter(i=>issueIds.has(i.issue_id)),
+    payments: d.payments.filter(p=>p.salesman_id===userId),
+    deposits: d.deposits.filter(p=>p.salesman_id===userId),
+    returns: d.returns.filter(p=>p.salesman_id===userId),
+    imeiUnits: d.imeiUnits.filter(u=>u.current_salesman===userId) };
 }
 
 export interface SalesmanSummary {
@@ -180,8 +98,7 @@ export function summarizeSalesman(data: SalesmanData): SalesmanSummary {
     sumBy(data.sales, (s) => toNumber(s.paid_amount)) +
     sumBy(data.payments, (p) => toNumber(p.amount));
   const deposited = sumBy(data.deposits, (d) => toNumber(d.amount));
-  const charged = sumBy(data.sales, (s) => toNumber(s.total_amount));
-  const dues = Math.max(0, charged - cashCollected);
+  const dues = dealerDues(data.sales, data.payments);
   return {
     cashCollected,
     deposited,

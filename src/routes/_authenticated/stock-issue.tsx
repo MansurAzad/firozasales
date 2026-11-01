@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -12,9 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/stock-issue")({
   head: () => ({
     meta: [
-      { title: "মাল ইস্যু — মোবাইল হিসাব" },
+      { title: "মাল ইস্যু — FE MANAGEMENT" },
       { name: "description", content: "Issue stock to salesmen, with IMEI scanning." },
-      { property: "og:title", content: "মাল ইস্যু — মোবাইল হিসাব" },
+      { property: "og:title", content: "মাল ইস্যু — FE MANAGEMENT" },
       { property: "og:description", content: "Issue stock to salesmen, with IMEI scanning." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -37,36 +39,14 @@ function StockIssuePage() {
   const data = useQuery({
     queryKey: ["stock-issue-page"],
     queryFn: async () => {
-      const [salesmenRoles, productsRes, issuesRes] = await Promise.all([
-        supabase.from("user_roles").select("user_id").eq("role", "salesman"),
-        supabase.from("products").select("id, name, category, price").eq("is_active", true).order("name"),
-        supabase
-          .from("stock_issues")
-          .select("id, salesman_id, issued_at")
-          .order("issued_at", { ascending: false })
-          .limit(10),
-      ]);
-      const ids = (salesmenRoles.data ?? []).map((r) => r.user_id);
-      const [profilesRes, issueItemsRes] = await Promise.all([
-        ids.length
-          ? supabase.from("profiles").select("id, full_name, is_active").in("id", ids)
-          : Promise.resolve({ data: [] as never[] }),
-        issuesRes.data && issuesRes.data.length
-          ? supabase
-              .from("stock_issue_items")
-              .select("id, issue_id, quantity")
-              .in("issue_id", issuesRes.data.map((i) => i.id))
-          : Promise.resolve({ data: [] as never[] }),
-      ]);
-      return {
-        salesmen: profilesRes.data ?? [],
-        products: productsRes.data ?? [],
-        issues: issuesRes.data ?? [],
-        issueItems: issueItemsRes.data ?? [],
-      };
+      const d=await fetchAccounting();
+      const ids=new Set(d.roles.filter(r=>r.role==='salesman').map(r=>r.user_id));
+      return { salesmen:d.profiles.filter(p=>ids.has(p.id)), products:d.products.filter(p=>p.is_active), issues:d.stockIssues, issueItems:d.issueItems };
+
     },
   });
 
+  const post = usePosting();
   const [salesmanId, setSalesmanId] = useState("");
   const [items, setItems] = useState<DraftItem[]>([]);
   const [pickProduct, setPickProduct] = useState("");
@@ -76,45 +56,13 @@ function StockIssuePage() {
       if (!role.data || !salesmanId || items.length === 0) {
         throw new Error(t("noData"));
       }
-      const { data: issue, error } = await supabase
-        .from("stock_issues")
-        .insert({ salesman_id: salesmanId, issued_by: role.data.userId })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      for (const item of items) {
-        if (item.product.category === "button_phone") {
-          const { error: e } = await supabase.from("stock_issue_items").insert({
-            issue_id: issue.id,
-            product_id: item.product.id,
-            quantity: item.qty,
-          });
-          if (e) throw e;
-        } else {
-          for (const unit of item.units) {
-            const { error: e } = await supabase.from("stock_issue_items").insert({
-              issue_id: issue.id,
-              product_id: item.product.id,
-              quantity: 1,
-              imei_unit_id: unit.id,
-            });
-            if (e) throw e;
-            const { error: rpcError } = await supabase.rpc("issue_imei", {
-              p_imei: unit.imei,
-              p_issue_id: issue.id,
-            });
-            if (rpcError) throw rpcError;
-          }
-        }
-      }
-      return issue.id;
+      return post('issue', { salesman_id: salesmanId, items: items.map(i=>({ product_id:i.product.id, quantity:i.qty, unit_ids:i.units.map(u=>u.id) })) });
     },
     onSuccess: () => {
       toast.success(t("issue_created"));
       setItems([]);
       setSalesmanId("");
-      queryClient.invalidateQueries({ queryKey: ["stock-issue-page"] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -135,6 +83,7 @@ function StockIssuePage() {
       </AppShell>
     );
   }
+  if (data.error) throw data.error;
   const d = data.data;
   if (!d) return null;
 
@@ -148,11 +97,11 @@ function StockIssuePage() {
   const checkImei = async (code: string, item: DraftItem) => {
     const { data: unit } = await supabase
       .from("imei_units")
-      .select("id, product_id, status")
+      .select("id, product_id, status, is_damaged")
       .eq("imei", code)
       .maybeSingle();
     if (!unit) return { ok: false, message: t("imei_not_in_stock") };
-    if (unit.status !== "in_dealer_stock") {
+    if (unit.status !== "in_dealer_stock" || unit.is_damaged) {
       return { ok: false, message: t("imei_not_in_stock") };
     }
     if (unit.product_id !== item.product.id) {
@@ -199,7 +148,7 @@ function StockIssuePage() {
               </option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
             className="btn-secondary shrink-0"
             disabled={!pickProduct}
@@ -210,20 +159,20 @@ function StockIssuePage() {
             }}
           >
             {t("add")}
-          </button>
+          </Button>
         </div>
 
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="font-semibold text-foreground">{item.product.name}</div>
-              <button
+              <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"
                 onClick={() => setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))}
               >
                 {t("delete")}
-              </button>
+              </Button>
             </div>
             {item.product.category === "button_phone" ? (
               <div className="flex items-center gap-2">
@@ -280,14 +229,14 @@ function StockIssuePage() {
           </div>
         ))}
 
-        <button
+        <Button
           type="button"
           className="btn-primary w-full"
-          disabled={!salesmanId || items.length === 0 || submit.isPending}
+          disabled={!salesmanId || items.length === 0 || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("issue_stock")}
-        </button>
+        </Button>
       </div>
 
       <section className="card">

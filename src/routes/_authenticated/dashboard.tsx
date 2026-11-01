@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { dealerDues } from "@/lib/accounting";
 import { useQuery } from "@tanstack/react-query";
 
 import { AppShell } from "@/components/AppShell";
@@ -16,9 +17,9 @@ import {
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "ড্যাশবোর্ড — মোবাইল হিসাব" },
-      { name: "description", content: "Hisab dashboard: stock, sales, dues, deposits." },
-      { property: "og:title", content: "ড্যাশবোর্ড — মোবাইল হিসাব" },
+      { title: "ড্যাশবোর্ড — FE MANAGEMENT" },
+      { name: "description", content: "FIROZA ENTERPRISE dashboard: stock, sales, dues, deposits." },
+      { property: "og:title", content: "ড্যাশবোর্ড — FE MANAGEMENT" },
       {
         property: "og:description",
         content: "Stock, sales, dues and deposits at a glance.",
@@ -56,6 +57,7 @@ function AdminDashboard({ userId }: { userId: string }) {
     queryFn: () => fetchAdminData(),
   });
 
+  if (data.error) throw data.error;
   if (data.isLoading) {
     return (
       <AppShell title={t("nav_dashboard")}>
@@ -66,26 +68,31 @@ function AdminDashboard({ userId }: { userId: string }) {
   const d = data.data;
   if (!d) return null;
 
-  const dealerStock =
-    d.imeiUnits.filter((u) => u.status === "in_dealer_stock").length +
-    d.products
-      .filter((p) => p.category !== "smartphone")
-      .reduce((acc, p) => {
-        const issued = d.issueItems
-          .filter((i) => i.product_id === p.id)
-          .reduce((a, i) => a + i.quantity, 0);
-        const sold = d.saleItems
-          .filter((i) => i.product_id === p.id)
-          .reduce((a, i) => a + i.quantity, 0);
-        const returned = d.returns
-          .filter((i) => i.product_id === p.id)
-          .reduce((a, i) => a + i.quantity, 0);
-        return acc + Math.max(0, issued - sold - returned);
-      }, 0);
+  const dealerStock = d.imeiUnits.filter(u=>u.status === "in_dealer_stock" && !u.is_damaged).length;
+  const totalSales=d.sales.reduce((a,s)=>a+toNumber(s.total_amount),0);
+  const cash=d.sales.reduce((a,s)=>a+toNumber(s.paid_amount),0)+d.payments.reduce((a,p)=>a+toNumber(p.amount),0);
+  const deposited=d.deposits.reduce((a,p)=>a+toNumber(p.amount),0);
+  const returned=d.returns.reduce((a,r)=>a+r.quantity,0);
+  const remaining=d.issueItems.reduce((a,i)=>a+i.quantity,0)-d.saleItems.reduce((a,i)=>a+i.quantity,0)-returned;
 
   return (
     <AppShell title={t("nav_dashboard")}>
       <h1 className="page-title mb-4">{t("nav_dashboard")}</h1>
+
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[[t("total_sales"),formatBDT(totalSales)], [t("dash_cash_collected"),formatBDT(cash)],
+          [t("dash_deposited"),formatBDT(deposited)], [t("dash_cash_on_hand"),formatBDT(cash-deposited)],
+          [t("dash_dues"),formatBDT(dealerDues(d.sales,d.payments))], [t("sr_stock"),String(remaining)],
+          [t("return_stock"),String(returned)], [t("damaged"),String(d.imeiUnits.filter(u=>u.is_damaged).length)]].map(([label,value])=>(
+          <div className="stat-card" key={label}><div className="stat-value">{value}</div><div className="stat-label">{label}</div></div>
+        ))}
+      </div>
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Link to="/stock-issue" className="btn-primary">{t("nav_stock_issue")}</Link>
+        <Link to="/sales" className="btn-outline">{t("all_sales")}</Link>
+        <Link to="/retailers" className="btn-outline">{t("ledger")}</Link>
+        <Link to="/settlement" className="btn-outline">{t("nav_settlement")}</Link>
+      </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="stat-card">
@@ -135,7 +142,7 @@ function AdminDashboard({ userId }: { userId: string }) {
                     sales.reduce((a, x) => a + toNumber(x.paid_amount), 0) +
                     payments.reduce((a, x) => a + toNumber(x.amount), 0);
                   const dep = deposits.reduce((a, x) => a + toNumber(x.amount), 0);
-                  const dues = Math.max(0, salesTotal - cash);
+                  const dues = dealerDues(sales,payments);
                   return (
                     <tr key={s.id} className="border-b border-border last:border-0">
                       <td className="table-cell font-medium">{s.full_name || "—"}</td>
@@ -182,7 +189,7 @@ function AdminDashboard({ userId }: { userId: string }) {
                   const balance = Math.max(0, salesTotal - cash);
                   return (
                     <tr key={r.id} className="border-b border-border last:border-0">
-                      <td className="table-cell font-medium">{r.name}</td>
+                      <td className="table-cell font-medium"><Link to="/retailers/$id" params={{id:r.id}} className="text-primary underline">{r.name}</Link></td>
                       <td className="table-cell">{formatBDT(salesTotal)}</td>
                       <td className="table-cell">{formatBDT(cash)}</td>
                       <td className="table-cell font-semibold text-warning-foreground">
@@ -211,6 +218,7 @@ function SalesmanDashboard({ userId }: { userId: string }) {
     queryFn: () => fetchSalesmanData(userId),
   });
 
+  if (data.error) throw data.error;
   if (data.isLoading) {
     return (
       <AppShell title={t("nav_home")}>
@@ -262,7 +270,8 @@ function SalesmanDashboard({ userId }: { userId: string }) {
                 {d.products
                   .filter((p) => stock.get(p.id))
                   .map((p) => {
-                    const row = stock.get(p.id)!;
+                    const row = stock.get(p.id);
+                    if (!row) return null;
                     return (
                       <tr key={p.id} className="border-b border-border last:border-0">
                         <td className="table-cell font-medium">{p.name}</td>

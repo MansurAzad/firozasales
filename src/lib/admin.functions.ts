@@ -22,6 +22,8 @@ export const createSalesmanAccount = createServerFn({ method: "POST" })
     );
     if (roleError) throw new Error(roleError.message);
     if (!isAdmin) throw new Error("Forbidden");
+    const { error: activeError } = await context.supabase.rpc("require_active_account");
+    if (activeError) throw new Error(activeError.message);
 
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"

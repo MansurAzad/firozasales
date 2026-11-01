@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,15 +9,15 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "মোবাইল হিসাব — Sign in" },
+      { title: "FE MANAGEMENT — Sign in | FIROZA ENTERPRISE" },
       {
         name: "description",
-        content: "Sign in to the Mobile Hisab distribution app.",
+        content: "Sign in to FIROZA ENTERPRISE's FE MANAGEMENT for stock, SR sales and dealer accounts.",
       },
-      { property: "og:title", content: "মোবাইল হিসাব — Sign in" },
+      { property: "og:title", content: "FE MANAGEMENT — FIROZA ENTERPRISE" },
       {
         property: "og:description",
-        content: "Sign in to the Mobile Hisab distribution app.",
+        content: "Sign in to FIROZA ENTERPRISE's distribution management app.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -78,15 +79,16 @@ function AuthPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
-            ৳
+            FE
           </div>
           <h1 className="text-2xl font-bold text-foreground">{t("appName")}</h1>
+          <p className="mt-2 text-sm font-semibold text-primary">{t("companyName")}</p>
         </div>
 
         {awaitingConfirm ? (
           <div className="card text-center">
             <p className="text-sm text-foreground">{t("checkEmail")}</p>
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setAwaitingConfirm(false);
@@ -95,12 +97,13 @@ function AuthPage() {
               className="btn-primary mt-4 w-full"
             >
               {t("signIn")}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="card">
             <div className="mb-4 flex rounded-xl bg-muted p-1">
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setMode("signin")}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
@@ -110,8 +113,9 @@ function AuthPage() {
                 }`}
               >
                 {t("signIn")}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setMode("signup")}
                 className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
@@ -121,7 +125,7 @@ function AuthPage() {
                 }`}
               >
                 {t("signUp")}
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={submit}>
@@ -168,13 +172,13 @@ function AuthPage() {
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 />
               </div>
-              <button type="submit" className="btn-primary w-full" disabled={busy}>
+              <Button type="submit" className="btn-primary w-full" disabled={busy}>
                 {busy
                   ? t("loading")
                   : mode === "signin"
                     ? t("signInBtn")
                     : t("signUpBtn")}
-              </button>
+              </Button>
             </form>
 
             {mode === "signup" ? (

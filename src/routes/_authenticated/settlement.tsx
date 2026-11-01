@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -20,9 +22,9 @@ import {
 export const Route = createFileRoute("/_authenticated/settlement")({
   head: () => ({
     meta: [
-      { title: "সেটেলমেন্ট — মোবাইল হিসাব" },
+      { title: "সেটেলমেন্ট — FE MANAGEMENT" },
       { name: "description", content: "Return stock, deposit cash, settle the trip." },
-      { property: "og:title", content: "সেটেলমেন্ট — মোবাইল হিসাব" },
+      { property: "og:title", content: "সেটেলমেন্ট — FE MANAGEMENT" },
       { property: "og:description", content: "Return stock, deposit cash, settle the trip." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -60,6 +62,7 @@ interface ReturnDraft {
 function SalesmanSettlement({ userId }: { userId: string }) {
   const { t } = useLang();
   const queryClient = useQueryClient();
+  const post = usePosting();
   const [returns, setReturns] = useState<ReturnDraft[]>([]);
   const [deposits, setDeposits] = useState<{ amount: number; note: string }[]>([]);
   const [depositAmount, setDepositAmount] = useState("");
@@ -74,84 +77,15 @@ function SalesmanSettlement({ userId }: { userId: string }) {
   const history = useQuery({
     queryKey: ["settlement-history", userId],
     queryFn: async () => {
-      const [settlementsRes, depositsRes, returnsRes] = await Promise.all([
-        supabase
-          .from("settlements")
-          .select("id, created_at")
-          .eq("salesman_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(10),
-        supabase
-          .from("deposits")
-          .select("id, settlement_id, amount")
-          .eq("salesman_id", userId),
-        supabase
-          .from("returns")
-          .select("id, settlement_id, quantity")
-          .eq("salesman_id", userId),
-      ]);
-      return {
-        settlements: settlementsRes.data ?? [],
-        deposits: depositsRes.data ?? [],
-        returns: returnsRes.data ?? [],
-      };
+      const d = await fetchAccounting();
+      return { settlements: d.settlements.filter(s=>s.salesman_id===userId), deposits:d.deposits.filter(s=>s.salesman_id===userId), returns:d.returns.filter(s=>s.salesman_id===userId) };
     },
   });
 
   const submit = useMutation({
     mutationFn: async () => {
       if (returns.length === 0 && deposits.length === 0) throw new Error(t("noData"));
-      const { data: settlement, error } = await supabase
-        .from("settlements")
-        .insert({ salesman_id: userId })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      for (const r of returns) {
-        if (r.units.length > 0) {
-          for (const unit of r.units) {
-            const { data: returnRow, error: e } = await supabase
-              .from("returns")
-              .insert({
-                settlement_id: settlement.id,
-                salesman_id: userId,
-                product_id: r.product_id,
-                quantity: 1,
-                imei_unit_id: unit.id,
-                is_damaged: r.damaged,
-              })
-              .select("id")
-              .single();
-            if (e) throw e;
-            const { error: rpcError } = await supabase.rpc("return_imei", {
-              p_imei: unit.imei,
-              p_return_id: returnRow.id,
-            });
-            if (rpcError) throw rpcError;
-          }
-        } else if (r.qty > 0) {
-          const { error: e } = await supabase.from("returns").insert({
-            settlement_id: settlement.id,
-            salesman_id: userId,
-            product_id: r.product_id,
-            quantity: r.qty,
-            is_damaged: r.damaged,
-          });
-          if (e) throw e;
-        }
-      }
-
-      for (const dep of deposits) {
-        const { error: e } = await supabase.from("deposits").insert({
-          settlement_id: settlement.id,
-          salesman_id: userId,
-          amount: dep.amount,
-          note: dep.note,
-        });
-        if (e) throw e;
-      }
-      return settlement.id;
+      return post('settlement', { returns:returns.map(r=>({ product_id:r.product_id, quantity:r.qty, is_damaged:r.damaged, unit_ids:r.units.map(u=>u.id) })), deposits });
     },
     onSuccess: () => {
       toast.success(t("settlement_saved"));
@@ -159,12 +93,12 @@ function SalesmanSettlement({ userId }: { userId: string }) {
       setDeposits([]);
       setDepositAmount("");
       setDepositNote("");
-      queryClient.invalidateQueries({ queryKey: ["settlement-page", userId] });
-      queryClient.invalidateQueries({ queryKey: ["settlement-history", userId] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (data.error) throw data.error;
   const d = data.data;
   if (data.isLoading || !d) {
     return (
@@ -179,7 +113,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
   const pendingProducts = d.products
     .map((p) => {
       const row = stock.get(p.id);
-      const remaining = row ? row.issued - row.sold - row.returned : 0;
+      const remaining = (row ? row.issued - row.sold - row.returned : 0) - returns.filter(r=>r.product_id===p.id).reduce((n,r)=>n+(r.units.length || r.qty),0);
       return { ...p, remaining };
     })
     .filter((p) => p.remaining > 0);
@@ -204,6 +138,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     return { ok: true, message: t("imei_return_ok") };
   };
 
+  if (history.error) throw history.error;
   const h = history.data;
 
   return (
@@ -319,13 +254,13 @@ function SalesmanSettlement({ userId }: { userId: string }) {
                   />
                   {t("damaged")}
                 </label>
-                <button
+                <Button
                   type="button"
                   className="btn-ghost btn-sm text-destructive"
                   onClick={() => setReturns((prev) => prev.filter((_, i) => i !== idx))}
                 >
                   {t("delete")}
-                </button>
+                </Button>
               </div>
             </div>
             {r.units.length > 0 ? (
@@ -344,7 +279,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             const n = Number(depositAmount);
-            if (!n || n <= 0) return;
+            if (!validCash(n,summary.cashOnHand-deposits.reduce((a,d)=>a+d.amount,0))) { toast.error(t("invalid_cash")); return; }
             setDeposits((prev) => [...prev, { amount: n, note: depositNote }]);
             setDepositAmount("");
             setDepositNote("");
@@ -365,31 +300,31 @@ function SalesmanSettlement({ userId }: { userId: string }) {
             onChange={(e) => setDepositNote(e.target.value)}
             placeholder={t("note")}
           />
-          <button type="submit" className="btn-secondary btn-sm">
+          <Button type="submit" className="btn-secondary btn-sm">
             {t("add")}
-          </button>
+          </Button>
         </form>
         {deposits.map((dep, idx) => (
           <div key={idx} className="row">
             <span className="font-semibold">{formatBDT(dep.amount)}</span>
-            <button
+            <Button
               type="button"
               className="btn-ghost btn-sm text-destructive"
               onClick={() => setDeposits((prev) => prev.filter((_, i) => i !== idx))}
             >
               {t("delete")}
-            </button>
+            </Button>
           </div>
         ))}
 
-        <button
+        <Button
           type="button"
           className="btn-primary mt-3 w-full"
           disabled={(returns.length === 0 && deposits.length === 0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("settle_btn")}
-        </button>
+        </Button>
       </section>
 
       <section className="card">
@@ -460,7 +395,7 @@ function AddQtyReturn({
         <input type="checkbox" checked={damaged} onChange={(e) => setDamaged(e.target.checked)} />
         {t("damaged")}
       </label>
-      <button type="submit" className="btn-secondary btn-sm">{t("add")}</button>
+      <Button type="submit" className="btn-secondary btn-sm">{t("add")}</Button>
     </form>
   );
 }
@@ -469,6 +404,7 @@ function AdminSettlement() {
   const { t } = useLang();
   const data = useQuery({ queryKey: ["admin-settlement"], queryFn: () => fetchAdminData() });
 
+  if (data.error) throw data.error;
   if (data.isLoading || !data.data) {
     return (
       <AppShell title={t("settlement_title")}>

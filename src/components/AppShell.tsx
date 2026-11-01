@@ -54,6 +54,7 @@ export function AppShell({ title, children }: AppShellProps) {
               {t("appName")}
             </div>
             <div className="truncate text-xs text-muted-foreground">{title}</div>
+            <div className="text-[10px] font-medium text-muted-foreground">{t("companyName")}</div>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -77,7 +78,7 @@ export function AppShell({ title, children }: AppShellProps) {
         </div>
       </header>
 
-      <main className="page">{children}</main>
+      <main className="page">{role.data && !role.data.isActive ? <p className="text-destructive">{t("account_inactive")}</p> : children}</main>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur">
         <div

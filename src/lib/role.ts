@@ -16,7 +16,7 @@ export function useMyRole() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return null;
-      const [{ data: isAdmin }, { data: profile }] = await Promise.all([
+      const [{ data: isAdmin, error: roleError }, { data: profile, error: profileError }] = await Promise.all([
         supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
         supabase
           .from("profiles")
@@ -24,11 +24,12 @@ export function useMyRole() {
           .eq("id", user.id)
           .maybeSingle(),
       ]);
+      if (roleError || profileError) throw new Error((roleError || profileError)?.message);
       return {
         userId: user.id,
         isAdmin: isAdmin === true,
         fullName: profile?.full_name ?? "",
-        isActive: profile?.is_active ?? true,
+        isActive: profile?.is_active ?? false,
       };
     },
   });

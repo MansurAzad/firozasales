@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -13,9 +15,9 @@ import { formatBDT, saleDue, toNumber } from "@/lib/money";
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
     meta: [
-      { title: "বিক্রি — মোবাইল হিসাব" },
+      { title: "বিক্রি — FE MANAGEMENT" },
       { name: "description", content: "Record sales to retailers with cash and dues." },
-      { property: "og:title", content: "বিক্রি — মোবাইল হিসাব" },
+      { property: "og:title", content: "বিক্রি — FE MANAGEMENT" },
       { property: "og:description", content: "Record sales to retailers with cash and dues." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -50,23 +52,11 @@ function AdminSales() {
   const data = useQuery({
     queryKey: ["admin-sales"],
     queryFn: async () => {
-      const [salesRes, profilesRes, retailersRes] = await Promise.all([
-        supabase
-          .from("sales")
-          .select("id, salesman_id, retailer_id, total_amount, paid_amount, sold_at")
-          .order("sold_at", { ascending: false })
-          .limit(30),
-        supabase.from("profiles").select("id, full_name"),
-        supabase.from("retailers").select("id, name"),
-      ]);
-      return {
-        sales: salesRes.data ?? [],
-        profiles: profilesRes.data ?? [],
-        retailers: retailersRes.data ?? [],
-      };
+      return fetchAccounting();
     },
   });
 
+  if (data.error) throw data.error;
   const d = data.data;
   return (
     <AppShell title={t("all_sales")}>
@@ -103,6 +93,7 @@ function AdminSales() {
 function SalesmanSales({ userId }: { userId: string }) {
   const { t } = useLang();
   const queryClient = useQueryClient();
+  const post = usePosting();
   const [retailerId, setRetailerId] = useState("");
   const [items, setItems] = useState<DraftItem[]>([]);
   const [pickProduct, setPickProduct] = useState("");
@@ -112,38 +103,13 @@ function SalesmanSales({ userId }: { userId: string }) {
   const data = useQuery({
     queryKey: ["sales-page", userId],
     queryFn: async () => {
-      const [retailersRes, productsRes, salesRes] = await Promise.all([
-        supabase.from("retailers").select("id, name").eq("is_active", true).order("name"),
-        supabase.from("products").select("id, name, category, price").eq("is_active", true).order("name"),
-        supabase
-          .from("sales")
-          .select("id, retailer_id, total_amount, paid_amount, sold_at")
-          .eq("salesman_id", userId)
-          .order("sold_at", { ascending: false })
-          .limit(15),
-      ]);
-      const retailerIds = (salesRes.data ?? []).map((s) => s.retailer_id);
-      const [retailerNames, salesItemsRes] = await Promise.all([
-        retailerIds.length
-          ? supabase.from("retailers").select("id, name").in("id", retailerIds)
-          : Promise.resolve({ data: [] as never[] }),
-        salesRes.data && salesRes.data.length
-          ? supabase
-              .from("sale_items")
-              .select("id, sale_id, quantity, unit_price, product_id")
-              .in("sale_id", salesRes.data.map((s) => s.id))
-          : Promise.resolve({ data: [] as never[] }),
-      ]);
-      return {
-        retailers: retailersRes.data ?? [],
-        products: productsRes.data ?? [],
-        mySales: salesRes.data ?? [],
-        retailerNames: retailerNames.data ?? [],
-        saleItems: salesItemsRes.data ?? [],
-      };
+      const d=await fetchAccounting();
+      return { retailers:d.retailers.filter(r=>r.is_active), products:d.products.filter(p=>p.is_active), mySales:d.sales.filter(s=>s.salesman_id===userId), retailerNames:d.retailers, saleItems:d.saleItems };
+
     },
   });
 
+  if (data.error) throw data.error;
   const d = data.data;
 
   const total = items.reduce(
@@ -155,47 +121,8 @@ function SalesmanSales({ userId }: { userId: string }) {
   const submit = useMutation({
     mutationFn: async () => {
       if (!retailerId || items.length === 0) throw new Error(t("noData"));
-      const { data: sale, error } = await supabase
-        .from("sales")
-        .insert({
-          salesman_id: userId,
-          retailer_id: retailerId,
-          total_amount: total,
-          paid_amount: paid,
-          note,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      for (const item of items) {
-        if (item.product.category === "button_phone") {
-          const { error: e } = await supabase.from("sale_items").insert({
-            sale_id: sale.id,
-            product_id: item.product.id,
-            quantity: item.qty,
-            unit_price: item.unitPrice,
-          });
-          if (e) throw e;
-        } else {
-          for (const unit of item.units) {
-            const { error: e } = await supabase.from("sale_items").insert({
-              sale_id: sale.id,
-              product_id: item.product.id,
-              quantity: 1,
-              unit_price: item.unitPrice,
-              imei_unit_id: unit.id,
-            });
-            if (e) throw e;
-            const { error: rpcError } = await supabase.rpc("sell_imei", {
-              p_imei: unit.imei,
-              p_sale_id: sale.id,
-            });
-            if (rpcError) throw rpcError;
-          }
-        }
-      }
-      return sale.id;
+      if (!validCash(paid,total,true)) throw new Error(t('invalid_cash'));
+      return post('sale', { retailer_id:retailerId, paid_amount:paid, note, items:items.map(i=>({ product_id:i.product.id, quantity:i.qty, unit_price:i.unitPrice, unit_ids:i.units.map(u=>u.id) })) });
     },
     onSuccess: () => {
       toast.success(t("sale_saved"));
@@ -203,7 +130,7 @@ function SalesmanSales({ userId }: { userId: string }) {
       setRetailerId("");
       setCash("");
       setNote("");
-      queryClient.invalidateQueries({ queryKey: ["sales-page", userId] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -261,7 +188,7 @@ function SalesmanSales({ userId }: { userId: string }) {
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
             className="btn-secondary shrink-0"
             disabled={!pickProduct || !d}
@@ -272,20 +199,20 @@ function SalesmanSales({ userId }: { userId: string }) {
             }}
           >
             {t("add")}
-          </button>
+          </Button>
         </div>
 
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="font-semibold text-foreground">{item.product.name}</div>
-              <button
+              <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"
                 onClick={() => setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))}
               >
                 {t("delete")}
-              </button>
+              </Button>
             </div>
             <div className="mb-2 grid grid-cols-2 gap-2">
               {item.product.category === "button_phone" ? (
@@ -370,6 +297,8 @@ function SalesmanSales({ userId }: { userId: string }) {
         <div className="field">
           <label className="label" htmlFor="s-cash">{t("cash_received")}</label>
           <input
+            max={total}
+            step="0.01"
             id="s-cash"
             type="number"
             min="0"
@@ -390,14 +319,14 @@ function SalesmanSales({ userId }: { userId: string }) {
           <input id="s-note" className="input" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
 
-        <button
+        <Button
           type="button"
           className="btn-primary w-full"
-          disabled={!retailerId || items.length === 0 || submit.isPending}
+          disabled={!retailerId || items.length === 0 || !validCash(paid,total,true) || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("save_sale")}
-        </button>
+        </Button>
       </div>
 
       <section className="card">
