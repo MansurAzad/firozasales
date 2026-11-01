@@ -69,7 +69,7 @@ export function AppShell({ title, children }: AppShellProps) {
               type="button"
               onClick={handleSignOut}
               className="btn-ghost btn-sm"
-              aria-label={t("signIn") === "Sign in" ? "Sign out" : "সাইন আউট"}
+              aria-label={t("signOut")}
             >
               <LogOut className="h-4 w-4" />
             </button>
