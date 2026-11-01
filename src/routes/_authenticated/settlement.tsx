@@ -100,7 +100,6 @@ function SalesmanSettlement({ userId }: { userId: string }) {
 
   if (data.error) throw data.error;
   const d = data.data;
-  if (data.error) throw data.error;
   if (data.isLoading || !d) {
     return (
       <AppShell title={t("settlement_title")}>
@@ -413,7 +412,6 @@ function AdminSettlement() {
       </AppShell>
     );
   }
-  if (data.error) throw data.error;
   const d = data.data;
 
   return (

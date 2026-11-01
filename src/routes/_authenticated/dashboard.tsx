@@ -65,7 +65,6 @@ function AdminDashboard({ userId }: { userId: string }) {
       </AppShell>
     );
   }
-  if (data.error) throw data.error;
   const d = data.data;
   if (!d) return null;
 
@@ -227,7 +226,6 @@ function SalesmanDashboard({ userId }: { userId: string }) {
       </AppShell>
     );
   }
-  if (data.error) throw data.error;
   const d = data.data;
   if (!d) return null;
 
