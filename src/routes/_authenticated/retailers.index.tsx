@@ -85,7 +85,7 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(t("product_saved"));
+      toast.success(t("retailer_saved"));
       setName("");
       setPhone("");
       setAddress("");
