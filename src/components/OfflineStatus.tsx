@@ -16,15 +16,16 @@ export function OfflineStatus() {
     setBusy(true); setError('');
     try { await syncOffline(); await queryClient.invalidateQueries(); }
     catch (e) { setError(e instanceof Error ? e.message : 'Sync failed'); }
-    finally { setAccount(await currentLocalAccount()); setBusy(false); }
+    finally { await queryClient.invalidateQueries(); setAccount(await currentLocalAccount()); setBusy(false); }
   }
   useEffect(() => {
     const update = () => { setOffline(isOffline()); void currentLocalAccount().then(setAccount); };
     const online = () => { update(); void synchronize(); };
+    const resume = () => { if (!isOffline()) void currentLocalAccount().then(a => { if (a?.entries.length) void synchronize(); }); };
     const prompt = (e: Event) => { e.preventDefault(); setInstall(e as InstallEvent); };
     update(); void currentLocalAccount().then(a => { if (a?.snapshot && !isOffline()) void synchronize(); });
-    window.addEventListener('online', online); window.addEventListener('offline', update); window.addEventListener('fe-local-change', update); window.addEventListener('beforeinstallprompt', prompt);
-    return () => { window.removeEventListener('online', online); window.removeEventListener('offline', update); window.removeEventListener('fe-local-change', update); window.removeEventListener('beforeinstallprompt', prompt); };
+    window.addEventListener('online', online); window.addEventListener('offline', update); window.addEventListener('fe-local-change', update); window.addEventListener('beforeinstallprompt', prompt); window.addEventListener('focus', resume);
+    return () => { window.removeEventListener('online', online); window.removeEventListener('offline', update); window.removeEventListener('fe-local-change', update); window.removeEventListener('beforeinstallprompt', prompt); window.removeEventListener('focus', resume); };
   }, []);
   const pending = account?.entries.length ?? 0;
   return <section aria-label={lang === 'bn' ? 'সংযোগ ও সংরক্ষণ' : 'Connection and storage'} className="mb-4 border-b border-border pb-3 text-xs text-muted-foreground">
