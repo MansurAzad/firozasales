@@ -62,6 +62,7 @@ export type Database = {
           current_salesman: string | null
           id: string
           imei: string
+          is_damaged: boolean
           issued_at: string | null
           product_id: string
           returned_at: string | null
@@ -73,6 +74,7 @@ export type Database = {
           current_salesman?: string | null
           id?: string
           imei: string
+          is_damaged?: boolean
           issued_at?: string | null
           product_id: string
           returned_at?: string | null
@@ -84,6 +86,7 @@ export type Database = {
           current_salesman?: string | null
           id?: string
           imei?: string
+          is_damaged?: boolean
           issued_at?: string | null
           product_id?: string
           returned_at?: string | null
@@ -99,6 +102,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      posting_requests: {
+        Row: {
+          actor_id: string
+          created_at: string
+          kind: string
+          payload: Json
+          request_id: string
+          result_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          kind: string
+          payload: Json
+          request_id: string
+          result_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          kind?: string
+          payload?: Json
+          request_id?: string
+          result_id?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -513,6 +543,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accounting_snapshot: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -524,6 +555,11 @@ export type Database = {
         Args: { p_imei: string; p_issue_id: string }
         Returns: string
       }
+      post_transaction: {
+        Args: { p_kind: string; p_payload: Json; p_request_id: string }
+        Returns: string
+      }
+      require_active_account: { Args: never; Returns: string }
       return_imei: {
         Args: { p_imei: string; p_return_id: string }
         Returns: string
@@ -531,6 +567,10 @@ export type Database = {
       sell_imei: {
         Args: { p_imei: string; p_sale_id: string }
         Returns: string
+      }
+      set_sr_active: {
+        Args: { p_active: boolean; p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {

@@ -8,6 +8,13 @@
       "when": 1793402197198,
       "tag": "0000_hisab_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793537527425,
+      "tag": "0001_atomic_accounting_integrity",
+      "breakpoints": true
     }
   ]
 }
