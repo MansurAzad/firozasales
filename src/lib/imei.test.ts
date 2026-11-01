@@ -56,10 +56,9 @@ describe("IMEI status flow (mirrors database functions)", () => {
   });
 
   it("full lifecycle: issue → sell → return path stays closed for sold units", () => {
-    const statuses: ImeiStatus[] = ["in_dealer_stock", "with_salesman", "sold"];
-    expect(checkTransition("issue", statuses[0]).ok).toBe(true);
-    expect(checkTransition("sell", statuses[1]).ok).toBe(true);
+    expect(checkTransition("issue", "in_dealer_stock").ok).toBe(true);
+    expect(checkTransition("sell", "with_salesman").ok).toBe(true);
     // A sold unit can never be returned through the scanner flow.
-    expect(checkTransition("return", statuses[2]).ok).toBe(false);
+    expect(checkTransition("return", "sold").ok).toBe(false);
   });
 });
