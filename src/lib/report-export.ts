@@ -1,5 +1,6 @@
 import type { Report } from './reports';
 import { currentLocalAccount } from './offline';
+import companyLogo from '@/assets/firoza-logo.png.asset.json';
 
 export async function createExcelFile(report: Report, filename: string): Promise<File> {
   const { Workbook } = await import('exceljs');
@@ -7,6 +8,11 @@ export async function createExcelFile(report: Report, filename: string): Promise
   workbook.creator = 'FIROZA ENTERPRISE';
   const sheet = workbook.addWorksheet('Report');
   sheet.addRow(['FIROZA ENTERPRISE']);
+  sheet.getRow(1).height = 44;
+  const logoResponse = await fetch(companyLogo.url);
+  if (!logoResponse.ok) throw new Error('Company logo could not be loaded');
+  const logoId = workbook.addImage({ buffer: new Uint8Array(await logoResponse.arrayBuffer()), extension: 'png' });
+  sheet.addImage(logoId, { tl: { col: Math.max(1, report.columns.length - 1), row: 0 }, ext: { width: 42, height: 52 } });
   sheet.addRow([report.title]);
   const account = await currentLocalAccount();
   sheet.addRow(account?.entries.length ? ['PROVISIONAL / অনলাইনে যাচাই বাকি — Local entries included'] : []);
@@ -30,6 +36,7 @@ export function downloadFile(blob: Blob, name:string) {
 }
 export async function createPdfFile(element: HTMLElement, filename:string): Promise<File> {
   await document.fonts.ready;
+  await Promise.all(Array.from(element.querySelectorAll('img')).map(image => image.decode()));
   const [{default:html2canvas},{jsPDF}]=await Promise.all([import('html2canvas-pro'),import('jspdf')]);
   const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const pages=Array.from(element.querySelectorAll<HTMLElement>('.paper-page'));
