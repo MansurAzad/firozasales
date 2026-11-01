@@ -14,9 +14,11 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
+import { Route as AuthenticatedRetailersRouteImport } from './routes/_authenticated/retailers'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedSalesmenRouteImport } from './routes/_authenticated/salesmen'
 import { Route as AuthenticatedStockIssueRouteImport } from './routes/_authenticated/stock-issue'
+import { Route as AuthenticatedRetailersIdRouteImport } from './routes/_authenticated/retailers.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -42,6 +44,11 @@ const AuthenticatedProductsRoute = AuthenticatedProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRetailersRoute = AuthenticatedRetailersRouteImport.update({
+  id: '/retailers',
+  path: '/retailers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -57,24 +64,34 @@ const AuthenticatedStockIssueRoute = AuthenticatedStockIssueRouteImport.update({
   path: '/stock-issue',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRetailersIdRoute =
+  AuthenticatedRetailersIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedRetailersRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/products': typeof AuthenticatedProductsRoute
+  '/retailers': typeof AuthenticatedRetailersRouteWithChildren
   '/sales': typeof AuthenticatedSalesRoute
   '/salesmen': typeof AuthenticatedSalesmenRoute
   '/stock-issue': typeof AuthenticatedStockIssueRoute
+  '/retailers/$id': typeof AuthenticatedRetailersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/products': typeof AuthenticatedProductsRoute
+  '/retailers': typeof AuthenticatedRetailersRouteWithChildren
   '/sales': typeof AuthenticatedSalesRoute
   '/salesmen': typeof AuthenticatedSalesmenRoute
   '/stock-issue': typeof AuthenticatedStockIssueRoute
+  '/retailers/$id': typeof AuthenticatedRetailersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -83,9 +100,11 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
+  '/_authenticated/retailers': typeof AuthenticatedRetailersRouteWithChildren
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/salesmen': typeof AuthenticatedSalesmenRoute
   '/_authenticated/stock-issue': typeof AuthenticatedStockIssueRoute
+  '/_authenticated/retailers/$id': typeof AuthenticatedRetailersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -94,18 +113,22 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/products'
+    | '/retailers'
     | '/sales'
     | '/salesmen'
     | '/stock-issue'
+    | '/retailers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/dashboard'
     | '/products'
+    | '/retailers'
     | '/sales'
     | '/salesmen'
     | '/stock-issue'
+    | '/retailers/$id'
   id:
     | '__root__'
     | '/'
@@ -113,9 +136,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/products'
+    | '/_authenticated/retailers'
     | '/_authenticated/sales'
     | '/_authenticated/salesmen'
     | '/_authenticated/stock-issue'
+    | '/_authenticated/retailers/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -161,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProductsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/retailers': {
+      id: '/_authenticated/retailers'
+      path: '/retailers'
+      fullPath: '/retailers'
+      preLoaderRoute: typeof AuthenticatedRetailersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sales': {
       id: '/_authenticated/sales'
       path: '/sales'
@@ -182,12 +214,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStockIssueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/retailers/$id': {
+      id: '/_authenticated/retailers/$id'
+      path: '/$id'
+      fullPath: '/retailers/$id'
+      preLoaderRoute: typeof AuthenticatedRetailersIdRouteImport
+      parentRoute: typeof AuthenticatedRetailersRoute
+    }
   }
 }
+
+interface AuthenticatedRetailersRouteChildren {
+  AuthenticatedRetailersIdRoute: typeof AuthenticatedRetailersIdRoute
+}
+
+const AuthenticatedRetailersRouteChildren: AuthenticatedRetailersRouteChildren =
+  {
+    AuthenticatedRetailersIdRoute: AuthenticatedRetailersIdRoute,
+  }
+
+const AuthenticatedRetailersRouteWithChildren =
+  AuthenticatedRetailersRoute._addFileChildren(
+    AuthenticatedRetailersRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
+  AuthenticatedRetailersRoute: typeof AuthenticatedRetailersRouteWithChildren
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSalesmenRoute: typeof AuthenticatedSalesmenRoute
   AuthenticatedStockIssueRoute: typeof AuthenticatedStockIssueRoute
@@ -196,6 +250,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
+  AuthenticatedRetailersRoute: AuthenticatedRetailersRouteWithChildren,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSalesmenRoute: AuthenticatedSalesmenRoute,
   AuthenticatedStockIssueRoute: AuthenticatedStockIssueRoute,
