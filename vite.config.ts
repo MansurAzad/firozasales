@@ -9,7 +9,7 @@ import { VitePWA, type VitePluginPWAAPI } from 'vite-plugin-pwa';
 import { existsSync } from 'node:fs';
 // Vercel builds (NITRO_PRESET=vercel) publish static files from .vercel/output/static.
 // Outside Lovable builds, the vercel preset writes client files and the prerendered shell there.
-const clientDir = process.env.NITRO_PRESET === 'vercel' && !process.env.LOVABLE_SANDBOX && !process.env.DEV_SERVER__PROJECT_PATH ? '.vercel/output/static' : 'dist/client';
+const clientDir = process.env['NITRO_PRESET'] === 'vercel' && !process.env['LOVABLE_SANDBOX'] && !process.env['DEV_SERVER__PROJECT_PATH'] ? '.vercel/output/static' : 'dist/client';
 import companyLogo from './src/assets/firoza-logo.png.asset.json';
 
 export default defineConfig({
