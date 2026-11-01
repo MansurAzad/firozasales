@@ -166,7 +166,7 @@ function SalesmanList({
   return (
     <div className="card">
       {rows.map((row) => (
-        <div key={row.id} className="row">
+        <div key={row.id} className="grid min-w-0 gap-3 border-b border-border py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div>
             <div className="font-semibold text-foreground">{row.full_name || "—"}</div>
             <div className="break-all text-sm text-muted-foreground">{row.email}</div>
@@ -174,7 +174,7 @@ function SalesmanList({
               {new Date(row.created_at).toLocaleDateString()}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <SrPasswordReset userId={row.id} name={row.full_name} email={row.email} />
             <span className={row.is_active ? "badge-ok" : "badge-warn"}>
               {row.is_active ? t("active") : t("inactive")}
