@@ -6,11 +6,15 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA, type VitePluginPWAAPI } from 'vite-plugin-pwa';
+import { existsSync } from 'node:fs';
 
 export default defineConfig({
   vite: {
     plugins: [VitePWA({
-      integration: { closeBundleOrder: 'post' },
+      integration: { closeBundleOrder: 'post', beforeBuildServiceWorker(options) {
+        // Client closeBundle precedes TanStack's anonymous shell prerender.
+        options.workbox.navigateFallback = existsSync('dist/client/_shell.html') ? '/_shell.html' : null;
+      } },
       strategies: 'generateSW', filename: 'sw.js', registerType: 'autoUpdate', injectRegister: null,
       outDir: 'dist/client',
       devOptions: { enabled: false }, manifest: false,
@@ -31,6 +35,7 @@ export default defineConfig({
       buildApp: { order: 'post', async handler(builder) {
         const plugin = builder.config.plugins.find(p => p.name === 'vite-plugin-pwa');
         const api = plugin?.api as VitePluginPWAAPI | undefined;
+        if (!existsSync('dist/client/_shell.html')) throw new Error('Offline anonymous shell was not generated');
         if (api) await api.generateSW();
       } },
     }],
