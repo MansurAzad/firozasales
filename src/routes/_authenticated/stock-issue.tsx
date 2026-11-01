@@ -9,7 +9,7 @@ import { AppShell } from "@/components/AppShell";
 import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
-import { supabase } from "@/integrations/supabase/client";
+import { findImei } from "@/lib/offline";
 
 export const Route = createFileRoute("/_authenticated/stock-issue")({
   head: () => ({
@@ -95,11 +95,7 @@ function StockIssuePage() {
   }
 
   const checkImei = async (code: string, item: DraftItem) => {
-    const { data: unit } = await supabase
-      .from("imei_units")
-      .select("id, product_id, status, is_damaged")
-      .eq("imei", code)
-      .maybeSingle();
+    const { data: unit } = await findImei(code);
     if (!unit) return { ok: false, message: t("imei_not_in_stock") };
     if (unit.status !== "in_dealer_stock" || unit.is_damaged) {
       return { ok: false, message: t("imei_not_in_stock") };
@@ -199,11 +195,7 @@ function StockIssuePage() {
                   hint={t("scan_imei_stock")}
                   check={(code) => checkImei(code, item)}
                   onAccepted={(code) =>
-                    supabase
-                      .from("imei_units")
-                      .select("id")
-                      .eq("imei", code)
-                      .maybeSingle()
+                    findImei(code)
                       .then(({ data: unit }) => {
                         if (unit) {
                           setItems((prev) =>

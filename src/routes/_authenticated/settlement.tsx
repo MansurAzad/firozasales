@@ -9,7 +9,7 @@ import { AppShell } from "@/components/AppShell";
 import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
-import { supabase } from "@/integrations/supabase/client";
+import { findImei } from "@/lib/offline";
 import { formatBDT, toNumber } from "@/lib/money";
 import {
   fetchAdminData,
@@ -121,11 +121,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
   const scanProduct = pendingProducts.find((p) => p.id === scanProductId);
 
   const checkReturnImei = async (code: string) => {
-    const { data: unit } = await supabase
-      .from("imei_units")
-      .select("id, product_id, status, current_salesman")
-      .eq("imei", code)
-      .maybeSingle();
+    const { data: unit } = await findImei(code);
     if (!unit || unit.status !== "with_salesman" || unit.current_salesman !== userId) {
       return { ok: false, message: t("imei_return_err") };
     }
@@ -186,11 +182,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
               hint={t("scan_imei_own")}
               check={checkReturnImei}
               onAccepted={(code) =>
-                supabase
-                  .from("imei_units")
-                  .select("id")
-                  .eq("imei", code)
-                  .maybeSingle()
+                findImei(code)
                   .then(({ data: unit }) => {
                     if (!unit) return;
                     setReturns((prev) => {

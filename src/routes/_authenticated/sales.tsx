@@ -9,7 +9,7 @@ import { AppShell } from "@/components/AppShell";
 import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
-import { supabase } from "@/integrations/supabase/client";
+import { findImei } from "@/lib/offline";
 import { formatBDT, saleDue, toNumber } from "@/lib/money";
 
 export const Route = createFileRoute("/_authenticated/sales")({
@@ -144,11 +144,7 @@ function SalesmanSales({ userId }: { userId: string }) {
   }
 
   const checkImei = async (code: string, item: DraftItem) => {
-    const { data: unit } = await supabase
-      .from("imei_units")
-      .select("id, product_id, status, current_salesman")
-      .eq("imei", code)
-      .maybeSingle();
+    const { data: unit } = await findImei(code);
     if (!unit || unit.status !== "with_salesman" || unit.current_salesman !== userId) {
       return { ok: false, message: t("imei_not_with_you") };
     }
@@ -260,11 +256,7 @@ function SalesmanSales({ userId }: { userId: string }) {
                   hint={t("scan_imei_own")}
                   check={(code) => checkImei(code, item)}
                   onAccepted={(code) =>
-                    supabase
-                      .from("imei_units")
-                      .select("id")
-                      .eq("imei", code)
-                      .maybeSingle()
+                    findImei(code)
                       .then(({ data: unit }) => {
                         if (unit) {
                           setItems((prev) =>

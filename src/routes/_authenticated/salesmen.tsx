@@ -11,6 +11,8 @@ import { createSalesmanAccount, listSalesmanAccounts } from "@/lib/admin.functio
 import { SrPasswordReset } from "@/components/SrPasswordReset";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { cachedRead } from "@/lib/offline";
+import { onlineRequired } from "@/lib/offline-store";
 
 export const Route = createFileRoute("/_authenticated/salesmen")({
   head: () => ({
@@ -34,7 +36,7 @@ function SalesmenPage() {
 
   const list = useQuery({
     queryKey: ["salesmen-list"],
-    queryFn: () => listFn(),
+    queryFn: () => cachedRead("sr-accounts", () => listFn()),
     enabled: role.data?.isAdmin === true && role.data.isActive,
   });
 
@@ -79,8 +81,9 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
   const [open, setOpen] = useState(false);
 
   const create = useMutation({
-    mutationFn: (input: { email: string; password: string; fullName: string }) =>
-      createFn({ data: input }),
+    mutationFn: (input: { email: string; password: string; fullName: string }) => {
+      onlineRequired(); return createFn({ data: input });
+    },
     onSuccess: () => {
       toast.success(t("account_created"));
       setFullName("");
@@ -153,6 +156,7 @@ function SalesmanList({
 
   const toggle = useMutation({
     mutationFn: async (row: { id: string; is_active: boolean }) => {
+      onlineRequired();
       const { error } = await supabase.rpc('set_sr_active', { p_user_id: row.id, p_active: !row.is_active });
       if (error) throw error;
     },

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
-import { supabase } from "@/integrations/supabase/client";
+import { catalogWrite } from "@/lib/offline";
 import { formatBDT, toNumber } from "@/lib/money";
 
 export const Route = createFileRoute("/_authenticated/retailers/")({
@@ -52,13 +52,13 @@ function RetailersPage() {
     <AppShell title={t("retailers_title")}>
       <h1 className="page-title mb-4">{t("retailers_title")}</h1>
       {isAdmin ? (
-        <AddRetailer onDone={() => queryClient.invalidateQueries({ queryKey: ["retailers-page"] })} />
+        <AddRetailer onDone={() => queryClient.invalidateQueries()} />
       ) : null}
       <RetailerList
         data={data.data}
         isAdmin={isAdmin}
         userId={role.data?.userId ?? ""}
-        onChange={() => queryClient.invalidateQueries({ queryKey: ["retailers-page"] })}
+        onChange={() => queryClient.invalidateQueries()}
       />
     </AppShell>
   );
@@ -73,10 +73,7 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("retailers")
-        .insert({ name, phone, address });
-      if (error) throw error;
+      await catalogWrite('retailers', 'insert', [{ name, phone, address }]);
     },
     onSuccess: () => {
       toast.success(t("retailer_saved"));
@@ -150,11 +147,7 @@ function RetailerList({
 
   const update = useMutation({
     mutationFn: async (row: RetailerRow) => {
-      const { error } = await supabase
-        .from("retailers")
-        .update({ name: row.name, phone: row.phone, address: row.address })
-        .eq("id", row.id);
-      if (error) throw error;
+      await catalogWrite('retailers', 'update', [{ id: row.id, name: row.name, phone: row.phone, address: row.address }]);
     },
     onSuccess: () => {
       setEditing(null);
@@ -165,11 +158,7 @@ function RetailerList({
 
   const toggleActive = useMutation({
     mutationFn: async (row: RetailerRow) => {
-      const { error } = await supabase
-        .from("retailers")
-        .update({ is_active: !row.is_active })
-        .eq("id", row.id);
-      if (error) throw error;
+      await catalogWrite('retailers', 'update', [{ id: row.id, is_active: !row.is_active }]);
     },
     onSuccess: onChange,
     onError: (e: Error) => toast.error(e.message),
@@ -177,8 +166,7 @@ function RetailerList({
 
   const remove = useMutation({
     mutationFn: async (row: RetailerRow) => {
-      const { error } = await supabase.from("retailers").delete().eq("id", row.id);
-      if (error) throw error;
+      await catalogWrite('retailers', 'delete', [{ id: row.id }]);
     },
     onSuccess: onChange,
     onError: (e: Error) => toast.error(e.message),
