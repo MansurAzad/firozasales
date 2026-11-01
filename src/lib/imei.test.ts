@@ -4,7 +4,6 @@ import {
   checkTransition,
   isPlausibleImei,
   normalizeImei,
-  type ImeiStatus,
 } from "./imei";
 
 describe("IMEI normalization", () => {
