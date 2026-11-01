@@ -82,10 +82,10 @@ export function AppShell({ title, children }: AppShellProps) {
 
       <main className="page">{role.data && !role.data.isActive ? <p className="text-destructive">{t("account_inactive")}</p> : children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-20 overflow-x-auto border-t border-border bg-card/95 backdrop-blur">
         <div
           className="mx-auto grid max-w-3xl"
-          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(64px, 1fr))` }}
         >
           {items.map((item) => (
             <Link

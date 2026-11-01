@@ -16,6 +16,7 @@ describe('business document accounting',()=>{
   it('exports button phones without an IMEI at the actual quantity and rate',()=>expect(buildDocument(d,'invoice','s')?.rows).toEqual([['Button phone','—',2,2500,5000]]));
   it('keeps invoice due at 11000 instead of applying later collections to the original invoice',()=>expect(buildDocument(d,'invoice','s')?.totals[2]?.[1]).toBe(11000));
   it('keeps dealer closing due at 8000 after later collection',()=>expect(buildReport(d,'dealers',f).rows[0]?.[5]).toBe(8000));
+  it('keeps running ledger due at 11000 then 8000',()=>expect(buildReport(d,'ledger',f).rows.map(r=>r[6])).toEqual([11000,8000]));
   it('exports the actual 3000 collection receipt',()=>expect(buildDocument(d,'receipt','p')?.totals[0]?.[1]).toBe(3000));
   it('does not invent a document for a missing transaction',()=>expect(buildDocument(d,'invoice','unknown')).toBeNull());
   it('filters each SR rather than exporting unrelated sales',()=>expect(buildReport(d,'sales',{...f,sr:'other'}).rows).toEqual([]));

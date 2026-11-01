@@ -1,7 +1,7 @@
 # Tasks
-- [ ] Verify and improve mobile barcode scanner and IMEI-free button-phone issue/return.
-- [ ] Add scoped Excel/PDF/print reports and branded invoices, receipts, issue/return vouchers and letterhead.
-- [ ] Verify new report/document flows with authenticated data and tests.
+- [x] Improve mobile scanner lifecycle/duplicate handling; verify camera start/stop and IMEI-free button-phone controls and existing return read-back.
+- [x] Add scoped Excel/PDF/print reports and branded invoices, receipts, issue/return vouchers and letterhead.
+- [x] Verify authenticated report/document read-back, real XLSX/PDF downloads, print visibility and scanner/accounting tests.
 - [x] Make mansurazad@gmail.com admin and remaining two accounts SR; identify SR emails.
 - [x] Add active-admin-only SR password reset and email display; verify authenticated form and mismatch guard with 25 passing tests.
 - [ ] Verify an actual SR password change and subsequent sign-in — waiting for the admin to set a chosen password; existing credentials were not changed.

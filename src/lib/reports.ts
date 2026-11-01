@@ -1,6 +1,6 @@
 import type { AccountingSnapshot } from './accounting';
 
-export type ReportKind = 'sales' | 'payments' | 'issues' | 'returns' | 'deposits' | 'settlements' | 'products' | 'imei' | 'dealers' | 'sr';
+export type ReportKind = 'sales' | 'payments' | 'issues' | 'returns' | 'deposits' | 'settlements' | 'products' | 'imei' | 'dealers' | 'sr' | 'ledger';
 export type DocumentKind = 'invoice' | 'receipt' | 'issue' | 'return' | 'settlement' | 'letterhead';
 export interface Report { title: string; columns: string[]; rows: (string | number)[][] }
 export interface Filters { from: string; to: string; sr: string; dealer: string }
@@ -12,6 +12,7 @@ export const reportTitles: Record<ReportKind, string> = {
   sales: 'Sales / বিক্রি', payments: 'Collections / আদায়', issues: 'Stock issues / মাল ইস্যু',
   returns: 'Returns / ফেরত', deposits: 'Deposits / জমা', settlements: 'Settlements / সেটেলমেন্ট',
   products: 'Products / পণ্য', imei: 'IMEI register / IMEI তালিকা', dealers: 'Dealer balances / ডিলার হিসাব', sr: 'SR balances / SR হিসাব',
+  ledger: 'Dealer ledger / ডিলার লেজার',
 };
 export const documentTitles: Record<DocumentKind, string> = {
   invoice: 'SALES INVOICE / বিক্রয় চালান', receipt: 'MONEY RECEIPT / টাকা প্রাপ্তির রসিদ',
@@ -34,6 +35,13 @@ export function buildReport(d: AccountingSnapshot, kind: ReportKind, f: Filters)
   const payments = d.payments.filter(s => match(s.paid_at, s.salesman_id, s.retailer_id));
   let columns: string[] = [], rows: Report['rows'] = [];
   switch (kind) {
+    case 'ledger': {
+      columns=['Dealer','Date','Reference','SR','Debit (BDT)','Credit (BDT)','Running due (BDT)'];
+      const entries=[...d.sales.map(s=>({at:s.sold_at,rid:s.retailer_id,sid:s.salesman_id,ref:reference('INV',s.id),debit:s.total_amount,credit:s.paid_amount})),...d.payments.map(p=>({at:p.paid_at,rid:p.retailer_id,sid:p.salesman_id,ref:reference('MR',p.id),debit:0,credit:p.amount}))].filter(e=>(!f.sr||e.sid===f.sr)&&(!f.dealer||e.rid===f.dealer)&&(!f.to||e.at.slice(0,10)<=f.to)).sort((a,b)=>a.at.localeCompare(b.at)||a.ref.localeCompare(b.ref));
+      const balances=new Map<string,number>();
+      for(const e of entries){const balance=(balances.get(e.rid)??0)+e.debit-e.credit;balances.set(e.rid,balance);if(!f.from||e.at.slice(0,10)>=f.from)rows.push([dealer(e.rid),displayDate(e.at),e.ref,name(e.sid),e.debit,e.credit,balance]);}
+      break;
+    }
     case 'sales': columns = ['Reference','Date','Dealer','SR','Total (BDT)','Cash (BDT)','Due at sale (BDT)','Note']; rows = sales.map(s => [reference('INV',s.id),displayDate(s.sold_at),dealer(s.retailer_id),name(s.salesman_id),s.total_amount,s.paid_amount,s.total_amount-s.paid_amount,s.note]); break;
     case 'payments': columns = ['Reference','Date','Dealer','SR','Amount (BDT)','Note']; rows = payments.map(s => [reference('MR',s.id),displayDate(s.paid_at),dealer(s.retailer_id),name(s.salesman_id),s.amount,s.note]); break;
     case 'issues': {
