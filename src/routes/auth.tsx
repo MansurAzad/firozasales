@@ -8,15 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "মোবাইল হিসাব — Sign in" },
+      { title: "FE MANAGEMENT — Sign in | FIROZA ENTERPRISE" },
       {
         name: "description",
-        content: "Sign in to the Mobile Hisab distribution app.",
+        content: "Sign in to FIROZA ENTERPRISE's FE MANAGEMENT for stock, SR sales and dealer accounts.",
       },
-      { property: "og:title", content: "মোবাইল হিসাব — Sign in" },
+      { property: "og:title", content: "FE MANAGEMENT — FIROZA ENTERPRISE" },
       {
         property: "og:description",
-        content: "Sign in to the Mobile Hisab distribution app.",
+        content: "Sign in to FIROZA ENTERPRISE's distribution management app.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -78,9 +78,10 @@ function AuthPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
-            ৳
+            FE
           </div>
           <h1 className="text-2xl font-bold text-foreground">{t("appName")}</h1>
+          <p className="mt-2 text-sm font-semibold text-primary">{t("companyName")}</p>
         </div>
 
         {awaitingConfirm ? (
