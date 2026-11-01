@@ -66,9 +66,11 @@ describe('offline access and synchronization', () => {
     mocks.rpc.mockImplementation(async name => name === 'accounting_snapshot' ? { error: { message: 'Read unavailable' } } : { data: 'posted', error: null });
     await expect(syncOffline()).rejects.toThrow('Read unavailable');
     expect((await readAccount(role.userId))?.entries[0]?.confirmed).toBe(true);
-    mocks.rpc.mockResolvedValue({ data: snapshot, error: null }); await syncOffline();
+    const confirmed = { ...snapshot, payments: [{ id: 'posted', retailer_id: 'r', salesman_id: role.userId, amount: 25, paid_at: '', note: '' }] };
+    mocks.rpc.mockResolvedValue({ data: confirmed, error: null }); await syncOffline();
     expect(mocks.rpc.mock.calls.filter(([name]) => name === 'post_transaction')).toHaveLength(1);
     expect((await readAccount(role.userId))?.entries).toHaveLength(0);
+    expect((await readAccount(role.userId))?.snapshot?.payments[0]?.amount).toBe(25);
   });
   it('uses atomic catalog posting with the original request id on retry', async () => {
     const admin = { ...role, isAdmin: true };
@@ -101,5 +103,25 @@ describe('offline access and synchronization', () => {
     });
     await expect(syncOffline()).rejects.toThrow('Second rejected');
     expect((await readAccount(role.userId))?.entries.map(e => e.id)).toEqual(['second']);
+  });
+  it('stops sending later entries if the connection drops during synchronization', async () => {
+    await writeAccount(role.userId, () => ({ role, entries: [], extras: {}, snapshot }));
+    await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'first'); await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'second');
+    mocks.rpc.mockImplementation(async name => {
+      if (name === 'post_transaction') { Object.defineProperty(navigator, 'onLine', { configurable: true, value: false }); return { data: 'posted', error: null }; }
+      return { error: { message: 'Disconnected' } };
+    });
+    await expect(syncOffline()).rejects.toThrow('Disconnected');
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === 'post_transaction')).toHaveLength(1);
+    expect((await readAccount(role.userId))?.entries).toHaveLength(2);
+  });
+  it('keeps acknowledged entries if the account changes before snapshot replacement', async () => {
+    await writeAccount(role.userId, () => ({ role, entries: [], extras: {}, snapshot })); await enqueue('payment', { retailer_id: 'r', amount: 25 }, 'switch');
+    mocks.rpc.mockImplementation(async name => {
+      if (name === 'accounting_snapshot') mocks.getSession.mockResolvedValue({ data: { session: { user: { id: 'another-account' } } } });
+      return { data: snapshot, error: null };
+    });
+    await syncOffline(); expect((await readAccount(role.userId))?.entries[0]?.confirmed).toBe(true);
+    expect((await readAccount(role.userId))?.snapshot?.payments).toHaveLength(0);
   });
 });
