@@ -13,11 +13,27 @@ export interface AdminData {
   sales: { id: string; salesman_id: string; retailer_id: string; total_amount: number; paid_amount: number; sold_at: string }[];
   payments: { id: string; salesman_id: string; retailer_id: string; amount: number; paid_at: string }[];
   deposits: { id: string; salesman_id: string; amount: number; deposited_at: string }[];
+  stockIssues: { id: string; salesman_id: string }[];
+  issueItems: { id: string; issue_id: string; product_id: string; quantity: number }[];
+  saleItems: { id: string; sale_id: string; product_id: string; quantity: number }[];
+  returns: { id: string; salesman_id: string; product_id: string; quantity: number }[];
+}
+
+/** Pieces issued to each salesman, across all stock issues. */
+export function issuedBySalesman(d: AdminData): Map<string, number> {
+  const salesmanOfIssue = new Map(d.stockIssues.map((i) => [i.id, i.salesman_id]));
+  const map = new Map<string, number>();
+  for (const item of d.issueItems) {
+    const sid = salesmanOfIssue.get(item.issue_id);
+    if (!sid) continue;
+    map.set(sid, (map.get(sid) ?? 0) + item.quantity);
+  }
+  return map;
 }
 
 /** Everything the admin dashboards need, read once and aggregated client-side. */
 export async function fetchAdminData(): Promise<AdminData> {
-  const [profilesRes, rolesRes, productsRes, imeiRes, retailersRes, salesRes, paymentsRes, depositsRes] =
+  const [profilesRes, rolesRes, productsRes, imeiRes, retailersRes, salesRes, paymentsRes, depositsRes, issuesRes, issueItemsRes, saleItemsRes, returnsRes] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name, is_active"),
       supabase.from("user_roles").select("user_id, role").eq("role", "salesman"),
@@ -27,6 +43,10 @@ export async function fetchAdminData(): Promise<AdminData> {
       supabase.from("sales").select("id, salesman_id, retailer_id, total_amount, paid_amount, sold_at"),
       supabase.from("retailer_payments").select("id, salesman_id, retailer_id, amount, paid_at"),
       supabase.from("deposits").select("id, salesman_id, amount, deposited_at"),
+      supabase.from("stock_issues").select("id, salesman_id"),
+      supabase.from("stock_issue_items").select("id, issue_id, product_id, quantity"),
+      supabase.from("sale_items").select("id, sale_id, product_id, quantity"),
+      supabase.from("returns").select("id, salesman_id, product_id, quantity"),
     ]);
 
   const salesmanIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
@@ -38,6 +58,10 @@ export async function fetchAdminData(): Promise<AdminData> {
     sales: salesRes.data ?? [],
     payments: paymentsRes.data ?? [],
     deposits: depositsRes.data ?? [],
+    stockIssues: issuesRes.data ?? [],
+    issueItems: issueItemsRes.data ?? [],
+    saleItems: saleItemsRes.data ?? [],
+    returns: returnsRes.data ?? [],
   };
 }
 
