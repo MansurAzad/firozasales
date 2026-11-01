@@ -13,6 +13,7 @@ import {
   fetchAdminData,
   fetchSalesmanData,
   perProductStock,
+  issuedBySalesman,
   summarizeSalesman,
 } from "@/lib/hisab";
 
@@ -493,9 +494,7 @@ function AdminSettlement() {
               sales.reduce((a, x) => a + toNumber(x.paid_amount), 0) +
               payments.reduce((a, x) => a + toNumber(x.amount), 0);
             const dep = deposits.reduce((a, x) => a + toNumber(x.amount), 0);
-            const withStock = d.imeiUnits.filter(
-              (u) => u.status === "with_salesman" && u.current_salesman === s.id,
-            ).length;
+            const withStock = issuedBySalesman(d).get(s.id) ?? 0;
             return (
               <div key={s.id} className="row">
                 <div>

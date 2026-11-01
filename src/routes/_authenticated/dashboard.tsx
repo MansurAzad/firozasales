@@ -65,7 +65,22 @@ function AdminDashboard({ userId }: { userId: string }) {
   const d = data.data;
   if (!d) return null;
 
-  const dealerStock = d.imeiUnits.filter((u) => u.status === "in_dealer_stock").length;
+  const dealerStock =
+    d.imeiUnits.filter((u) => u.status === "in_dealer_stock").length +
+    d.products
+      .filter((p) => p.category !== "smartphone")
+      .reduce((acc, p) => {
+        const issued = d.issueItems
+          .filter((i) => i.product_id === p.id)
+          .reduce((a, i) => a + i.quantity, 0);
+        const sold = d.saleItems
+          .filter((i) => i.product_id === p.id)
+          .reduce((a, i) => a + i.quantity, 0);
+        const returned = d.returns
+          .filter((i) => i.product_id === p.id)
+          .reduce((a, i) => a + i.quantity, 0);
+        return acc + Math.max(0, issued - sold - returned);
+      }, 0);
 
   return (
     <AppShell title={t("nav_dashboard")}>
@@ -109,9 +124,7 @@ function AdminDashboard({ userId }: { userId: string }) {
               </thead>
               <tbody>
                 {d.salesmen.map((s) => {
-                  const withStock = d.imeiUnits.filter(
-                    (u) => u.status === "with_salesman" && u.current_salesman === s.id,
-                  ).length;
+                  const withStock = issuedBySalesman(d).get(s.id) ?? 0;
                   const sales = d.sales.filter((x) => x.salesman_id === s.id);
                   const payments = d.payments.filter((x) => x.salesman_id === s.id);
                   const deposits = d.deposits.filter((x) => x.salesman_id === s.id);
