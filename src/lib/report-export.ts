@@ -11,7 +11,9 @@ export async function createExcelFile(report: Report, filename: string): Promise
   sheet.getRow(1).height = 44;
   const logoResponse = await fetch(companyLogo.url);
   if (!logoResponse.ok) throw new Error('Company logo could not be loaded');
-  const logoId = workbook.addImage({ buffer: new Uint8Array(await logoResponse.arrayBuffer()), extension: 'png' });
+  const logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
+  const logoBase64 = btoa(Array.from(logoBytes, byte => String.fromCharCode(byte)).join(''));
+  const logoId = workbook.addImage({ base64: `data:image/png;base64,${logoBase64}`, extension: 'png' });
   sheet.addImage(logoId, { tl: { col: Math.max(1, report.columns.length - 1), row: 0 }, ext: { width: 42, height: 52 } });
   sheet.addRow([report.title]);
   const account = await currentLocalAccount();
