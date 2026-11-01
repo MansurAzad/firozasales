@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Add installed PWA offline shell, per-account local data, offline entries with guarded synchronization, first-use validation and verification.
 - [x] Add local PDF/Excel sharing for all reports and documents; verify 17 generated files with simulated Web Share, cancellation, actual fallback download and mobile dialog; 39 tests pass. Real device share-sheet delivery remains device-dependent.
 - [x] Verify existing retailer collections and SR cash deposits, amount limits and real balance read-back; clarify entry points. No new financial entries were posted during testing.
 - [x] Add role-aware icon bottom navigation and admin overflow sheet; improve mobile lists, summaries, forms and dialogs; verify admin/SR pages at 320, 390, 764 and 1280 widths with 34 passing tests.
