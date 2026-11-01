@@ -1,12 +1,14 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Languages } from "lucide-react";
-import type { ReactNode } from "react";
+import { LogOut, Languages, House, Package, PackagePlus, ShoppingCart, Store, Wallet, Users, FileChartColumn, Menu } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 interface AppShellProps {
   title: string;
@@ -14,22 +16,22 @@ interface AppShellProps {
 }
 
 const ADMIN_NAV = [
-  { to: "/dashboard", label: "nav_dashboard" },
-  { to: "/products", label: "nav_products" },
-  { to: "/stock-issue", label: "nav_stock_issue" },
-  { to: "/sales", label: "nav_new_sale" },
-  { to: "/retailers", label: "nav_retailers" },
-  { to: "/settlement", label: "nav_settlement" },
-  { to: "/salesmen", label: "nav_salesmen" },
-  { to: "/reports", label: "nav_reports" },
+  { to: "/dashboard", label: "nav_dashboard", icon: House },
+  { to: "/products", label: "nav_products", icon: Package },
+  { to: "/stock-issue", label: "nav_stock_issue", icon: PackagePlus },
+  { to: "/sales", label: "nav_new_sale", icon: ShoppingCart },
+  { to: "/retailers", label: "nav_retailers", icon: Store },
+  { to: "/settlement", label: "nav_settlement", icon: Wallet },
+  { to: "/salesmen", label: "nav_salesmen", icon: Users },
+  { to: "/reports", label: "nav_reports", icon: FileChartColumn },
 ] as const;
 
 const SALESMAN_NAV = [
-  { to: "/dashboard", label: "nav_home" },
-  { to: "/sales", label: "nav_new_sale" },
-  { to: "/retailers", label: "nav_retailers" },
-  { to: "/settlement", label: "nav_settlement" },
-  { to: "/reports", label: "nav_reports" },
+  { to: "/dashboard", label: "nav_home", icon: House },
+  { to: "/sales", label: "nav_new_sale", icon: ShoppingCart },
+  { to: "/retailers", label: "nav_retailers", icon: Store },
+  { to: "/settlement", label: "nav_settlement", icon: Wallet },
+  { to: "/reports", label: "nav_reports", icon: FileChartColumn },
 ] as const;
 
 export function AppShell({ title, children }: AppShellProps) {
@@ -37,8 +39,12 @@ export function AppShell({ title, children }: AppShellProps) {
   const role = useMyRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const items = role.data?.isAdmin ? ADMIN_NAV : SALESMAN_NAV;
+  const mobileItems = role.data?.isAdmin
+    ? ADMIN_NAV.filter(item => ["/dashboard", "/stock-issue", "/retailers", "/settlement"].includes(item.to))
+    : SALESMAN_NAV;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -50,7 +56,7 @@ export function AppShell({ title, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-2.5">
+        <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2.5">
           <div className="min-w-0">
             <div className="truncate text-sm font-bold text-primary">
               {t("appName")}
@@ -58,47 +64,64 @@ export function AppShell({ title, children }: AppShellProps) {
             <div className="truncate text-xs text-muted-foreground">{title}</div>
             <div className="text-[10px] font-medium text-muted-foreground">{t("companyName")}</div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => setLang(lang === "bn" ? "en" : "bn")}
-              className="btn-ghost btn-sm gap-1"
-              aria-label="Language"
+              className="min-h-11 gap-1 px-2"
+              aria-label={t("other_lang")}
+              title={t("other_lang")}
             >
               <Languages className="h-4 w-4" />
               {t("other_lang")}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               type="button"
               onClick={handleSignOut}
-              className="btn-ghost btn-sm"
+              className="h-11 w-11"
               aria-label={t("signOut")}
+              title={t("signOut")}
             >
               <LogOut className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       <main className="page">{role.data && !role.data.isActive ? <p className="text-destructive">{t("account_inactive")}</p> : children}</main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 overflow-x-auto border-t border-border bg-card/95 backdrop-blur">
-        <div
-          className="mx-auto grid max-w-3xl"
-          style={{ gridTemplateColumns: `repeat(${items.length}, minmax(64px, 1fr))` }}
-        >
+      <nav aria-label={t("main_navigation")} className="bottom-navigation fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto hidden max-w-3xl items-stretch justify-around sm:flex">
           {items.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary"
-              activeProps={{ className: "text-primary" }}
+              className="nav-destination min-w-0 flex-1"
+              activeOptions={{ exact: item.to !== "/retailers" }}
+              activeProps={{ "aria-current": "page" }}
             >
+              <item.icon aria-hidden="true" className="h-5 w-5" />
               {t(item.label)}
             </Link>
           ))}
         </div>
+        <div className="mx-auto grid max-w-3xl grid-cols-5 sm:hidden">
+          {mobileItems.map(item => <Link key={item.to} to={item.to} className="nav-destination" activeOptions={{ exact: item.to !== "/retailers" }} activeProps={{ "aria-current": "page" }}><item.icon aria-hidden="true" className="h-5 w-5" /><span>{t(item.label === "nav_dashboard" ? "nav_home" : item.label)}</span></Link>)}
+          {role.data?.isAdmin ? <Button variant="ghost" className="nav-destination h-auto rounded-none" aria-label={t("more_menu")} onClick={() => setMenuOpen(true)}><Menu className="h-5 w-5" /><span>{t("more_menu")}</span></Button> : null}
+        </div>
       </nav>
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent side="bottom" className="mobile-menu max-h-[85dvh] overflow-y-auto rounded-t-lg">
+          <SheetTitle>{t("all_menu")}</SheetTitle>
+          <SheetDescription>{t("companyName")}</SheetDescription>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            {items.map(item => <Button key={item.to} asChild variant="ghost" className="h-auto min-h-14 justify-start whitespace-normal py-3"><Link to={item.to} onClick={() => setMenuOpen(false)} activeOptions={{ exact: item.to !== "/retailers" }} activeProps={{ className: "bg-primary/10 text-primary" }}><item.icon className="h-5 w-5" /><span>{t(item.label)}</span></Link></Button>)}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
