@@ -12,6 +12,9 @@ export const getRouter = () => {
 
   const router = createRouter({
     routeTree,
+    // Prerender requests /auth/ and production forbids following redirects.
+    // Accept both URL forms so the anonymous offline shell can render directly.
+    trailingSlash: "preserve",
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: "intent",
