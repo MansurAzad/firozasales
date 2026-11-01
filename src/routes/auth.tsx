@@ -7,6 +7,7 @@ import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { firstUseMessage, isOffline } from '@/lib/offline-store';
 import { localAccess } from '@/lib/offline';
+import { CompanyLogo } from '@/components/CompanyLogo';
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -85,12 +86,10 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
-            FE
-          </div>
+          <CompanyLogo className="mx-auto mb-3 h-24 w-20" />
           <h1 className="text-2xl font-bold text-foreground">{t("appName")}</h1>
           <p className="mt-2 text-sm font-semibold text-primary">{t("companyName")}</p>
         </div>
