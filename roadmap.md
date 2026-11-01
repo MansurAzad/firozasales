@@ -1,6 +1,6 @@
 # Tasks
-- [ ] Verify retailer collections and SR cash deposits to the stock house; make existing entry points clearer.
-- [ ] Improve all mobile pages and add icon-based, role-aware bottom navigation; verify authenticated mobile views.
+- [x] Verify existing retailer collections and SR cash deposits, amount limits and real balance read-back; clarify entry points. No new financial entries were posted during testing.
+- [x] Add role-aware icon bottom navigation and admin overflow sheet; improve mobile lists, summaries, forms and dialogs; verify admin/SR pages at 320, 390, 764 and 1280 widths with 34 passing tests.
 - [x] Improve mobile scanner lifecycle/duplicate handling; verify camera start/stop and IMEI-free button-phone controls and existing return read-back.
 - [x] Add scoped Excel/PDF/print reports and branded invoices, receipts, issue/return vouchers and letterhead.
 - [x] Verify authenticated report/document read-back, real XLSX/PDF downloads, print visibility and scanner/accounting tests.
@@ -11,4 +11,4 @@
 - [x] Audit accounting and implement atomic posting, balance/stock guards, immutable records, activation controls and complete financial reads.
 - [x] Dealers are the existing retailers.
 - [x] Verify login branding, applied database safeguards and 20 automated accounting/IMEI/routing tests.
-- [ ] Verify real admin/SR posting and dashboard read-back — blocked until the user signs into the preview or approves a named test account.
+- [ ] Verify a new collection and final stock-house deposit posting — needs a genuine collection/deposit amount; authenticated existing balances and deposit drafts have been verified without adding fictitious financial records.
