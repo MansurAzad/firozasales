@@ -9,6 +9,8 @@ import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBDT } from "@/lib/money";
+import { Button } from "@/components/ui/button";
+import { Pencil, Power, Trash2, ScanBarcode } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/products")({
   head: () => ({
@@ -116,9 +118,9 @@ function AddProduct({ onDone }: { onDone: () => void }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
+      <Button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
         + {t("add_product")}
-      </button>
+      </Button>
     );
   }
 
@@ -138,7 +140,7 @@ function AddProduct({ onDone }: { onDone: () => void }) {
           <label className="label" htmlFor="p-model">{t("model")} {t("optional")}</label>
           <input id="p-model" className="input" value={model} onChange={(e) => setModel(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="field">
             <label className="label" htmlFor="p-price">{t("price")}</label>
             <input id="p-price" type="number" min="0" className="input" value={price} onChange={(e) => setPrice(e.target.value)} required />
@@ -167,7 +169,8 @@ function AddProduct({ onDone }: { onDone: () => void }) {
             {imeis.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1">
                 {imeis.map((imei) => (
-                  <button
+                  <Button
+                    variant="ghost"
                     key={imei}
                     type="button"
                     className="badge-mut hover:text-destructive"
@@ -175,7 +178,7 @@ function AddProduct({ onDone }: { onDone: () => void }) {
                     title={t("delete")}
                   >
                     {imei} ×
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : null}
@@ -183,12 +186,12 @@ function AddProduct({ onDone }: { onDone: () => void }) {
         ) : null}
 
         <div className="flex gap-2">
-          <button type="submit" className="btn-primary" disabled={save.isPending}>
+          <Button type="submit" className="btn-primary" disabled={save.isPending}>
             {t("save")}
-          </button>
-          <button type="button" className="btn-outline" onClick={() => setOpen(false)}>
+          </Button>
+          <Button type="button" className="btn-outline" onClick={() => setOpen(false)}>
             {t("cancel")}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -278,36 +281,36 @@ function ProductList({
           (u) => u.product_id === p.id && u.status === "in_dealer_stock",
         ).length;
         return (
-          <div key={p.id} className="row">
+          <div key={p.id} className="grid min-w-0 gap-3 border-b border-border py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             {editing?.id === p.id ? (
               <form
-                className="flex w-full flex-wrap items-end gap-2"
+                className="grid w-full min-w-0 gap-2 sm:col-span-2 sm:grid-cols-3"
                 onSubmit={(e) => {
                   e.preventDefault();
                   update.mutate(editing);
                 }}
               >
                 <input
-                  className="input max-w-[160px]"
+                  className="input"
                   value={editing.name}
                   onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 />
                 <input
-                  className="input max-w-[120px]"
+                  className="input"
                   value={editing.model}
                   onChange={(e) => setEditing({ ...editing, model: e.target.value })}
                 />
                 <input
-                  className="input max-w-[110px]"
+                  className="input"
                   type="number"
                   min="0"
                   value={editing.price}
                   onChange={(e) => setEditing({ ...editing, price: e.target.value })}
                 />
-                <button type="submit" className="btn-primary btn-sm">{t("save")}</button>
-                <button type="button" className="btn-outline btn-sm" onClick={() => setEditing(null)}>
+                <Button type="submit" className="btn-primary btn-sm">{t("save")}</Button>
+                <Button type="button" className="btn-outline btn-sm" onClick={() => setEditing(null)}>
                   {t("cancel")}
-                </button>
+                </Button>
               </form>
             ) : (
               <>
@@ -326,31 +329,35 @@ function ProductList({
                   </div>
                 </div>
                 {isAdmin ? (
-                  <div className="flex shrink-0 gap-1">
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing({ ...p, price: String(p.price) } as never)}>
-                      {t("edit")}
-                    </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="icon" type="button" className="h-11 w-11" title={t("edit")} aria-label={t("edit")} onClick={() => setEditing({ ...p, price: String(p.price) })}>
+                      <Pencil />
+                    </Button>
                     {p.category === "smartphone" ? (
-                      <button
+                      <Button
                         type="button"
                         className="btn-secondary btn-sm"
                         onClick={() => setAddImeiFor(addImeiFor === p.id ? null : p.id)}
                       >
-                        {t("add_imei")}
-                      </button>
+                        <ScanBarcode />{t("add_imei")}
+                      </Button>
                     ) : null}
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => toggleActive.mutate(p)}>
-                      {p.is_active ? t("deactivate") : t("activate")}
-                    </button>
-                    <button
+                    <Button variant="ghost" size="icon" type="button" className="h-11 w-11" title={p.is_active ? t("deactivate") : t("activate")} aria-label={p.is_active ? t("deactivate") : t("activate")} onClick={() => toggleActive.mutate(p)}>
+                      <Power />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       type="button"
-                      className="btn-ghost btn-sm text-destructive"
+                      className="h-11 w-11 text-destructive"
+                      title={t("delete")}
+                      aria-label={t("delete")}
                       onClick={() => {
                         if (window.confirm(t("confirmDelete"))) remove.mutate(p);
                       }}
                     >
-                      {t("delete")}
-                    </button>
+                      <Trash2 />
+                    </Button>
                   </div>
                 ) : null}
               </>

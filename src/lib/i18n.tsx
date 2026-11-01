@@ -10,6 +10,9 @@ export type Lang = "bn" | "en";
 
 const dict: Record<Lang, Record<string, string>> = {
   bn: {
+    main_navigation: "প্রধান মেনু",
+    more_menu: "আরও",
+    all_menu: "সকল মেনু",
     nav_reports: "রিপোর্ট",
     appName: "FE MANAGEMENT",
     companyName: "FIROZA ENTERPRISE",
@@ -78,7 +81,7 @@ const dict: Record<Lang, Record<string, string>> = {
     nav_stock_issue: "মাল ইস্যু",
     nav_new_sale: "বিক্রি",
     nav_retailers: "ডিলার",
-    nav_settlement: "সেটেলমেন্ট",
+    nav_settlement: "জমা ও ফেরত",
     // dashboard
     dash_welcome: "স্বাগতম",
     dash_my_stock: "আমার হাতের মাল",
@@ -170,8 +173,8 @@ const dict: Record<Lang, Record<string, string>> = {
     history: "আগের সেটেলমেন্ট",
     expected_cash: "জমা দেওয়ার কথা",
     returns_entry: "ফেরত এন্ট্রি",
-    deposit_entry: "জমা এন্ট্রি",
-    settle_btn: "ফেরত ও জমা জমা দিন",
+    deposit_entry: "স্টক হাউজে টাকা জমা",
+    settle_btn: "জমা ও ফেরত নিশ্চিত করুন",
     return_added: "ফেরতে যোগ হয়েছে",
     deposit_added: "জমায় যোগ হয়েছে",
     // scanner
@@ -185,6 +188,9 @@ const dict: Record<Lang, Record<string, string>> = {
     imei_duplicate: "তালিকায় আগেই আছে",
   },
   en: {
+    main_navigation: "Main navigation",
+    more_menu: "More",
+    all_menu: "All menus",
     nav_reports: "Reports",
     appName: "FE MANAGEMENT",
     companyName: "FIROZA ENTERPRISE",
@@ -250,7 +256,7 @@ const dict: Record<Lang, Record<string, string>> = {
     nav_stock_issue: "Stock issue",
     nav_new_sale: "New sale",
     nav_retailers: "Dealers",
-    nav_settlement: "Settlement",
+    nav_settlement: "Deposit & return",
     dash_welcome: "Welcome",
     dash_my_stock: "My stock",
     dash_my_cash: "My cash",
@@ -335,8 +341,8 @@ const dict: Record<Lang, Record<string, string>> = {
     history: "Past settlements",
     expected_cash: "Cash to deposit",
     returns_entry: "Returns",
-    deposit_entry: "Deposit",
-    settle_btn: "Submit returns & deposit",
+    deposit_entry: "Deposit to stock house",
+    settle_btn: "Confirm deposit & returns",
     return_added: "Added to returns",
     deposit_added: "Added to deposit",
     scan: "Scan",

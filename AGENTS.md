@@ -14,3 +14,4 @@
 - Reports and business documents derive only from `accounting_snapshot`; browser-only export libraries are dynamically loaded, and PDF/print share a branded paginated paper layout to preserve Bengali text and authorized visibility.
 - SR activation changes use the admin-authorized `set_sr_active` RPC; self-service profile edits cannot change account activation.
 - SR password resets and auth-email listing use authenticated server functions that verify an active admin through RLS before loading the privileged auth client; reset targets must be SR-only and no password is returned or logged.
+- AppShell owns role-aware navigation: mobile uses five visible icon destinations with an admin overflow sheet, while desktop exposes all destinations; reserve safe-area space so content remains reachable.

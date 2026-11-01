@@ -164,8 +164,8 @@ function StockIssuePage() {
 
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="font-semibold text-foreground">{item.product.name}</div>
+            <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+              <div className="min-w-0 break-words font-semibold text-foreground">{item.product.name}</div>
               <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"

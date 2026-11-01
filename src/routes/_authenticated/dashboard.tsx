@@ -119,7 +119,7 @@ function AdminDashboard({ userId }: { userId: string }) {
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px]">
+            <table className="mobile-ledger-table w-full sm:min-w-[560px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="table-head pb-2">{t("dash_salesman")}</th>
@@ -146,11 +146,11 @@ function AdminDashboard({ userId }: { userId: string }) {
                   return (
                     <tr key={s.id} className="border-b border-border last:border-0">
                       <td className="table-cell font-medium">{s.full_name || "—"}</td>
-                      <td className="table-cell">{withStock} {t("dash_pieces")}</td>
-                      <td className="table-cell">{formatBDT(salesTotal)}</td>
-                      <td className="table-cell">{formatBDT(cash)}</td>
-                      <td className="table-cell">{formatBDT(dep)}</td>
-                      <td className="table-cell font-semibold text-warning-foreground">
+                      <td data-label={t("dash_issued")} className="table-cell">{withStock} {t("dash_pieces")}</td>
+                      <td data-label={t("dash_sales_total")} className="table-cell">{formatBDT(salesTotal)}</td>
+                      <td data-label={t("dash_cash_collected")} className="table-cell">{formatBDT(cash)}</td>
+                      <td data-label={t("dash_deposited")} className="table-cell">{formatBDT(dep)}</td>
+                      <td data-label={t("dash_dues")} className="table-cell font-semibold text-warning-foreground">
                         {formatBDT(dues)}
                       </td>
                     </tr>
@@ -168,7 +168,7 @@ function AdminDashboard({ userId }: { userId: string }) {
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px]">
+            <table className="mobile-ledger-table w-full sm:min-w-[480px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="table-head pb-2">{t("dash_retailer")}</th>
@@ -190,9 +190,9 @@ function AdminDashboard({ userId }: { userId: string }) {
                   return (
                     <tr key={r.id} className="border-b border-border last:border-0">
                       <td className="table-cell font-medium"><Link to="/retailers/$id" params={{id:r.id}} className="text-primary underline">{r.name}</Link></td>
-                      <td className="table-cell">{formatBDT(salesTotal)}</td>
-                      <td className="table-cell">{formatBDT(cash)}</td>
-                      <td className="table-cell font-semibold text-warning-foreground">
+                      <td data-label={t("total_sales")} className="table-cell">{formatBDT(salesTotal)}</td>
+                      <td data-label={t("total_paid")} className="table-cell">{formatBDT(cash)}</td>
+                      <td data-label={t("dash_balance")} className="table-cell font-semibold text-warning-foreground">
                         {formatBDT(balance)}
                       </td>
                     </tr>
@@ -236,7 +236,7 @@ function SalesmanDashboard({ userId }: { userId: string }) {
     <AppShell title={t("dash_my_stock")}>
       <h1 className="page-title mb-4">{t("dash_my_stock")}</h1>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="stat-card">
           <div className="stat-value">{formatBDT(summary.cashCollected)}</div>
           <div className="stat-label">{t("dash_cash_collected")}</div>
@@ -251,13 +251,17 @@ function SalesmanDashboard({ userId }: { userId: string }) {
         </div>
       </div>
 
+      <div className="mb-5 grid grid-cols-2 gap-3">
+        <Link to="/retailers" className="btn-primary">{t("receive_payment")}</Link>
+        <Link to="/settlement" className="btn-outline">{t("deposit_entry")}</Link>
+      </div>
       <section className="card mb-5">
         <h2 className="card-title mb-3">{t("dash_my_stock")}</h2>
         {d.products.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px]">
+            <table className="mobile-ledger-table w-full sm:min-w-[420px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="table-head pb-2">{t("dash_product")}</th>
@@ -275,9 +279,9 @@ function SalesmanDashboard({ userId }: { userId: string }) {
                     return (
                       <tr key={p.id} className="border-b border-border last:border-0">
                         <td className="table-cell font-medium">{p.name}</td>
-                        <td className="table-cell">{row.issued}</td>
-                        <td className="table-cell">{row.sold}</td>
-                        <td className="table-cell font-semibold">
+                        <td data-label={t("dash_issued")} className="table-cell">{row.issued}</td>
+                        <td data-label={t("dash_sold")} className="table-cell">{row.sold}</td>
+                        <td data-label={t("dash_remaining")} className="table-cell font-semibold">
                           {Math.max(0, row.issued - row.sold - row.returned)}
                         </td>
                       </tr>

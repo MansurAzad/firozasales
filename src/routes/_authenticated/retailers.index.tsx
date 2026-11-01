@@ -1,4 +1,6 @@
 import { fetchAccounting } from "@/lib/accounting";
+import { Button } from "@/components/ui/button";
+import { Pencil, Power, Trash2 } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -89,9 +91,9 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
+      <Button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
         + {t("add_retailer")}
-      </button>
+      </Button>
     );
   }
 
@@ -107,7 +109,7 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
           <label className="label" htmlFor="r-name">{t("name")}</label>
           <input id="r-name" className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="field">
             <label className="label" htmlFor="r-phone">{t("phone")}</label>
             <input id="r-phone" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -118,8 +120,8 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
           </div>
         </div>
         <div className="flex gap-2">
-          <button type="submit" className="btn-primary" disabled={save.isPending}>{t("save")}</button>
-          <button type="button" className="btn-outline" onClick={() => setOpen(false)}>{t("cancel")}</button>
+          <Button type="submit" className="btn-primary" disabled={save.isPending}>{t("save")}</Button>
+          <Button type="button" className="btn-outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
         </div>
       </form>
     </div>
@@ -191,34 +193,34 @@ function RetailerList({
     <div className="card">
       {data.retailers.map((r) => {
         return (
-          <div key={r.id} className="row">
+          <div key={r.id} className="grid min-w-0 gap-3 border-b border-border py-4 last:border-b-0">
             {editing?.id === r.id ? (
               <form
-                className="flex w-full flex-wrap items-end gap-2"
+                className="grid w-full min-w-0 gap-2 sm:grid-cols-3"
                 onSubmit={(e) => {
                   e.preventDefault();
                   update.mutate(editing);
                 }}
               >
                 <input
-                  className="input max-w-[160px]"
+                  className="input"
                   value={editing.name}
                   onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 />
                 <input
-                  className="input max-w-[130px]"
+                  className="input"
                   value={editing.phone}
                   onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
                 />
                 <input
-                  className="input max-w-[160px]"
+                  className="input"
                   value={editing.address}
                   onChange={(e) => setEditing({ ...editing, address: e.target.value })}
                 />
-                <button type="submit" className="btn-primary btn-sm">{t("save")}</button>
-                <button type="button" className="btn-outline btn-sm" onClick={() => setEditing(null)}>
+                <Button type="submit" className="btn-primary btn-sm">{t("save")}</Button>
+                <Button type="button" className="btn-outline btn-sm" onClick={() => setEditing(null)}>
                   {t("cancel")}
-                </button>
+                </Button>
               </form>
             ) : (
               <>
@@ -229,30 +231,34 @@ function RetailerList({
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {r.phone || "—"}
-                    {isAdmin ? ` · ${t("ledger")}` : ""}
+                    {` · ${t("ledger")}`}
                   </div>
                 </Link>
-                <div className="flex shrink-0 items-center gap-1">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                   <RetailerBalance retailerId={r.id} isAdmin={isAdmin} userId={userId} data={data} />
                   {isAdmin ? (
-                    <>
-                      <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing(r)}>
-                        {t("edit")}
-                      </button>
-                      <button type="button" className="btn-ghost btn-sm" onClick={() => toggleActive.mutate(r)}>
-                        {r.is_active ? t("deactivate") : t("activate")}
-                      </button>
-                      <button
+                    <div className="flex shrink-0 items-center">
+                      <Button variant="ghost" size="icon" className="h-11 w-11" type="button" aria-label={t("edit")} title={t("edit")} onClick={() => setEditing(r)}>
+                        <Pencil />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-11 w-11" type="button" aria-label={r.is_active ? t("deactivate") : t("activate")} title={r.is_active ? t("deactivate") : t("activate")} onClick={() => toggleActive.mutate(r)} disabled={toggleActive.isPending}>
+                        <Power />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         type="button"
-                        className="btn-ghost btn-sm text-destructive"
+                        aria-label={t("delete")}
+                        title={t("delete")}
+                        className="h-11 w-11 text-destructive"
                         onClick={() => {
                           if (window.confirm(t("confirmDelete"))) remove.mutate(r);
                         }}
                       >
-                        {t("delete")}
-                      </button>
-                    </>
-                  ) : null}
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  ) : <Button asChild variant="outline" className="whitespace-normal"><Link to="/retailers/$id" params={{ id: r.id }}>{t("receive_payment")}</Link></Button>}
                 </div>
               </>
             )}
@@ -290,7 +296,7 @@ function RetailerBalance({
       payments.reduce((a, p) => a + toNumber(p.amount), 0),
   );
   return (
-    <span className="badge-warn">
+    <span className="badge-warn justify-self-start whitespace-normal">
       {t("balance")}: {formatBDT(balance)}
     </span>
   );
