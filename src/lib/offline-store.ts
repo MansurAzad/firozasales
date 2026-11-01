@@ -4,15 +4,23 @@ import type { MyRole } from './role';
 import type { Json } from '@/integrations/supabase/types';
 
 export type EntryKind = 'issue' | 'sale' | 'payment' | 'settlement' | 'catalog';
-export interface LocalEntry { id: string; kind: EntryKind; payload: Json; createdAt: string; error?: string }
-export interface LocalAccount { role: MyRole; snapshot?: AccountingSnapshot; updatedAt?: string; entries: LocalEntry[]; extras: Record<string, unknown> }
+export interface LocalEntry { id: string; kind: EntryKind; payload: Json; createdAt: string; error?: string; confirmed?: boolean }
+export interface LocalAccount { role: MyRole; snapshot?: AccountingSnapshot; updatedAt?: string; entries: LocalEntry[]; extras: Record<string, unknown>; revision?: number }
 function db() { return openDB('fe-management-offline', 1, { upgrade(database) { database.createObjectStore('accounts'); } }); }
 export async function readAccount(id: string): Promise<LocalAccount | undefined> { return (await db()).get('accounts', id); }
 export async function writeAccount(id: string, update: (value: LocalAccount | undefined) => LocalAccount) {
   const database = await db();
   const tx = database.transaction('accounts', 'readwrite');
   const current = await tx.store.get(id) as LocalAccount | undefined;
-  await tx.store.put(update(current), id); await tx.done;
+  try {
+    const next = update(current);
+    if (next !== current) await tx.store.put({ ...next, revision: (current?.revision ?? 0) + 1 }, id);
+    await tx.done;
+  } catch (error) {
+    try { tx.abort(); } catch { /* Already completed or aborted. */ }
+    await tx.done.catch(() => {});
+    throw error;
+  }
   window.dispatchEvent(new Event('fe-local-change'));
 }
 export async function clearAccount(id: string) { await (await db()).delete('accounts', id); }

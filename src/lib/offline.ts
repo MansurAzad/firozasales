@@ -45,7 +45,7 @@ export async function offlineSnapshot(): Promise<AccountingSnapshot> {
     if (await sessionId() !== id) throw new Error('Account changed');
     const profile = snapshot.profiles.find(p => p.id === id);
     const role: MyRole = { userId: id, isAdmin: snapshot.roles.some(r => r.user_id === id && r.role === 'admin'), fullName: profile?.full_name ?? '', isActive: profile?.is_active === true };
-    await writeAccount(id, current => current?.entries.length ? current : ({ entries: [], extras: {}, ...current, snapshot, role, updatedAt: new Date().toISOString() }));
+    await writeAccount(id, current => current && (current.entries.length || (current.revision ?? 0) !== (account?.revision ?? 0)) ? current : ({ entries: [], extras: {}, ...current, snapshot, role, updatedAt: new Date().toISOString() }));
     localStorage.setItem(identityKey, id);
     account = await readAccount(id);
   }
@@ -57,7 +57,11 @@ export async function enqueue(kind: LocalEntry['kind'], payload: Json, id: strin
   const uid = await sessionId(); if (!uid) throw new Error(firstUseMessage);
   await writeAccount(uid, current => {
     if (!current?.snapshot || !current.role.isActive) throw new Error(firstUseMessage);
-    if (current.entries.some(e => e.id === id)) return current;
+    const existing = current.entries.find(e => e.id === id);
+    if (existing) {
+      if (existing.kind !== kind || JSON.stringify(existing.payload) !== JSON.stringify(payload)) throw new Error('Request ID already used with different input');
+      return current;
+    }
     if (kind === 'catalog' && !current.role.isAdmin) throw new Error('Admin required');
     const entry: LocalEntry = { id, kind, payload, createdAt: new Date().toISOString() };
     projectEntries(current.snapshot, [...current.entries, entry], current.role);
@@ -98,30 +102,41 @@ async function runSync() {
   if (error || user?.id !== uid) throw new Error('Reconnect and sign in to synchronize');
   // Every server write still revalidates current role, activation, stock and balances.
   for (;;) {
+    if (isOffline()) throw new Error('Connection lost; entries remain saved locally');
     const account = await readAccount(uid), entry = account?.entries[0];
     if (!entry) break;
     if (await sessionId() !== uid) return;
     try {
-      if (entry.kind === 'catalog') await sendCatalog(entry);
-      else {
-        const result = await supabase.rpc('post_transaction', { p_kind: entry.kind, p_payload: entry.payload, p_request_id: entry.id });
-        if (result.error) throw new Error(result.error.message);
+      if (!entry.confirmed) {
+        if (entry.kind === 'catalog') await sendCatalog(entry);
+        else {
+          const result = await supabase.rpc('post_transaction', { p_kind: entry.kind, p_payload: entry.payload, p_request_id: entry.id });
+          if (result.error) throw new Error(result.error.message);
+        }
+        await writeAccount(uid, current => {
+          if (!current) throw new Error('Local account missing');
+          return { ...current, entries: current.entries.map(e => sameEntry(e, entry) ? { ...e, confirmed: true, error: undefined } : e) };
+        });
       }
       // Atomic local replacement prevents double projection after an ambiguous network response.
       const snapshot = await serverSnapshot();
       if (await sessionId() !== uid) return;
       await writeAccount(uid, current => {
         if (!current) throw new Error('Local account missing');
-        return { ...current, snapshot, updatedAt: new Date().toISOString(), entries: current.entries.filter(e => e.id !== entry.id) };
+        if (!current.entries.some(e => sameEntry(e, entry))) return current;
+        const profile = snapshot.profiles.find(p => p.id === uid);
+        const role: MyRole = { userId: uid, isAdmin: snapshot.roles.some(r => r.user_id === uid && r.role === 'admin'), fullName: profile?.full_name ?? '', isActive: profile?.is_active === true };
+        return { ...current, snapshot, role, updatedAt: new Date().toISOString(), entries: current.entries.filter(e => !sameEntry(e, entry)) };
       });
     } catch (error) {
       await writeAccount(uid, current => {
         if (!current) throw new Error('Local account missing');
-        return { ...current, entries: current.entries.map(e => e.id === entry.id ? { ...e, error: error instanceof Error ? error.message : 'Sync failed' } : e) };
+        return { ...current, entries: current.entries.map(e => sameEntry(e, entry) ? { ...e, error: error instanceof Error ? error.message : 'Sync failed' } : e) };
       });
       throw error;
     }
   }
   await offlineSnapshot();
 }
+function sameEntry(a: LocalEntry, b: LocalEntry) { return a.id === b.id && a.kind === b.kind && a.createdAt === b.createdAt && JSON.stringify(a.payload) === JSON.stringify(b.payload); }
 export async function currentLocalAccount(): Promise<LocalAccount | undefined> { const uid = await sessionId(); return uid ? readAccount(uid) : undefined; }
