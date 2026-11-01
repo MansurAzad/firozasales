@@ -26,19 +26,19 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
   for (const entry of entries) {
     const p = entry.payload as Record<string, Json | undefined>;
     const date = entry.createdAt, id = `local-${entry.id}`;
-    const items = (Array.isArray(p.items) ? p.items : []) as Record<string, Json | undefined>[];
-    const sid = entry.kind === 'issue' ? String(p.salesman_id) : actor.userId;
+    const items = (Array.isArray(p['items']) ? p['items'] : []) as Record<string, Json | undefined>[];
+    const sid = entry.kind === 'issue' ? String(p['salesman_id']) : actor.userId;
     if (entry.kind === 'catalog') {
-      const table = String(p.table), action = String(p.action), rows = (p.rows ?? []) as Record<string, Json>[];
+      const table = String(p['table']), action = String(p['action']), rows = (p['rows'] ?? []) as Record<string, Json>[];
       if (table !== 'products' && table !== 'retailers' && table !== 'imeiUnits') throw new Error('Invalid local table');
       const target = d[table] as unknown as Record<string, Json>[];
       for (const row of rows) {
-        const index = target.findIndex(r => r.id === row.id);
+        const index = target.findIndex(r => r.id === row['id']);
         if (action === 'delete') { if (index >= 0) target.splice(index, 1); }
         else if (index >= 0) Object.assign(target[index] ?? {}, row);
         else target.push({ created_at: date, is_active: true, model: '', price: 0, phone: '', address: '', status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row });
       }
-      const units = (p.units ?? []) as Record<string, Json>[];
+      const units = (p['units'] ?? []) as Record<string, Json>[];
       for (const row of units) d.imeiUnits.push({ created_at: date, status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row } as unknown as AccountingSnapshot['imeiUnits'][number]);
       continue;
     }
@@ -47,16 +47,16 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
     let total = 0;
     if (entry.kind === 'sale' || entry.kind === 'issue') {
       if (!items.length) throw new Error('No items');
-      if (entry.kind === 'sale' && !d.retailers.some(r => r.id === p.retailer_id && r.is_active)) throw new Error('Dealer unavailable');
+      if (entry.kind === 'sale' && !d.retailers.some(r => r.id === p['retailer_id'] && r.is_active)) throw new Error('Dealer unavailable');
       if (entry.kind === 'issue' && !d.profiles.some(r => r.id === sid && r.is_active) ) throw new Error('SR unavailable');
       const seen = new Set<string>();
       for (const item of items) {
-        const product = d.products.find(r => r.id === item.product_id && r.is_active);
+        const product = d.products.find(r => r.id === item['product_id'] && r.is_active);
         if (!product) throw new Error('Product unavailable');
-        const units = (item.unit_ids ?? []) as string[];
-        const quantity = product.category === 'smartphone' ? units.length : Number(item.quantity);
+        const units = (item['unit_ids'] ?? []) as string[];
+        const quantity = product.category === 'smartphone' ? units.length : Number(item['quantity']);
         if (!Number.isInteger(quantity) || quantity <= 0) throw new Error('Invalid quantity');
-        const price = Number(item.unit_price ?? 0);
+        const price = Number(item['unit_price'] ?? 0);
         if (!Number.isFinite(price) || price < 0 || Math.abs(price * 100 - Math.round(price * 100)) > 0.000001) throw new Error('Invalid price');
         if (entry.kind === 'sale' && product.category === 'button_phone' && quantity > available(d, sid, product.id)) throw new Error('Insufficient saved stock');
         for (const unitId of units) {
@@ -74,38 +74,38 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
         total += quantity * price;
       }
       if (entry.kind === 'sale') {
-        const paid = Number(p.paid_amount); checkCash(paid, total, true);
-        d.sales.push({ id, retailer_id: String(p.retailer_id), salesman_id: sid, total_amount: total, paid_amount: paid, sold_at: date, note: String(p.note ?? '') });
+        const paid = Number(p['paid_amount']); checkCash(paid, total, true);
+        d.sales.push({ id, retailer_id: String(p['retailer_id']), salesman_id: sid, total_amount: total, paid_amount: paid, sold_at: date, note: String(p['note'] ?? '') });
       }
     }
     if (entry.kind === 'payment') {
-      const rid = String(p.retailer_id);
+      const rid = String(p['retailer_id']);
       const due = d.sales.filter(s => s.salesman_id === sid && s.retailer_id === rid).reduce((n, s) => n + s.total_amount - s.paid_amount, 0) - d.payments.filter(s => s.salesman_id === sid && s.retailer_id === rid).reduce((n, s) => n + s.amount, 0);
-      checkCash(Number(p.amount), due);
-      d.payments.push({ id, retailer_id: rid, salesman_id: sid, amount: Number(p.amount), note: String(p.note ?? ''), paid_at: date });
+      checkCash(Number(p['amount']), due);
+      d.payments.push({ id, retailer_id: rid, salesman_id: sid, amount: Number(p['amount']), note: String(p['note'] ?? ''), paid_at: date });
     }
     if (entry.kind === 'settlement') {
-      const returns = (p.returns ?? []) as Record<string, Json | undefined>[];
-      const deposits = (p.deposits ?? []) as Record<string, Json | undefined>[];
+      const returns = (p['returns'] ?? []) as Record<string, Json | undefined>[];
+      const deposits = (p['deposits'] ?? []) as Record<string, Json | undefined>[];
       if (!returns.length && !deposits.length) throw new Error('Empty settlement');
       d.settlements.push({ id, salesman_id: sid, created_at: date, note: '' });
       for (const [n, row] of returns.entries()) {
-        const product = d.products.find(r => r.id === row.product_id);
+        const product = d.products.find(r => r.id === row['product_id']);
         if (!product) throw new Error('Product unavailable');
-        const units = (row.unit_ids ?? []) as string[];
-        const quantity = product.category === 'smartphone' ? units.length : Number(row.quantity);
+        const units = (row['unit_ids'] ?? []) as string[];
+        const quantity = product.category === 'smartphone' ? units.length : Number(row['quantity']);
         if (!Number.isInteger(quantity) || quantity <= 0 || quantity > available(d, sid, product.id)) throw new Error('Invalid return quantity');
         for (const uid of units) {
           const unit = d.imeiUnits.find(u => u.id === uid && u.product_id === product.id && u.current_salesman === sid && u.status === 'with_salesman');
           if (!unit) throw new Error('IMEI unavailable');
-          unit.status = 'in_dealer_stock'; unit.current_salesman = null; unit.is_damaged = row.is_damaged === true; unit.returned_at = date;
+          unit.status = 'in_dealer_stock'; unit.current_salesman = null; unit.is_damaged = row['is_damaged'] === true; unit.returned_at = date;
         }
-        for (const [j, uid] of (units.length ? units : [null]).entries()) d.returns.push({ id: `${id}-r${n}-${j}`, settlement_id: id, salesman_id: sid, product_id: product.id, quantity: uid ? 1 : quantity, imei_unit_id: uid, is_damaged: row.is_damaged === true, returned_at: date });
+        for (const [j, uid] of (units.length ? units : [null]).entries()) d.returns.push({ id: `${id}-r${n}-${j}`, settlement_id: id, salesman_id: sid, product_id: product.id, quantity: uid ? 1 : quantity, imei_unit_id: uid, is_damaged: row['is_damaged'] === true, returned_at: date });
       }
       let cash = cashOnHand(d, sid);
       for (const [n, row] of deposits.entries()) {
-        const amount = Number(row.amount); checkCash(amount, cash); cash -= amount;
-        d.deposits.push({ id: `${id}-d${n}`, settlement_id: id, salesman_id: sid, amount, note: String(row.note ?? ''), deposited_at: date });
+        const amount = Number(row['amount']); checkCash(amount, cash); cash -= amount;
+        d.deposits.push({ id: `${id}-d${n}`, settlement_id: id, salesman_id: sid, amount, note: String(row['note'] ?? ''), deposited_at: date });
       }
     }
   }

@@ -64,7 +64,7 @@ export async function postOfflineAware(kind: 'issue'|'sale'|'payment'|'settlemen
 }
 export type CatalogTable = 'products'|'retailers'|'imeiUnits';
 export async function catalogWrite(table: CatalogTable, action: 'insert'|'update'|'delete', rows: Record<string, Json>[], units: Record<string, Json>[] = []) {
-  const prepared = rows.map(row => ({ ...row, id: row.id ?? crypto.randomUUID() }));
+  const prepared = rows.map(row => ({ ...row, id: row['id'] ?? crypto.randomUUID() }));
   const payload = { table, action, rows: prepared, units };
   await enqueue('catalog', payload, crypto.randomUUID());
   if (!isOffline()) await syncOffline();
@@ -74,18 +74,18 @@ async function sendCatalog(entry: LocalEntry) {
   const p = entry.payload as { table: CatalogTable; action: string; rows: Record<string, Json>[]; units: Record<string, Json>[] };
   const table = p.table === 'imeiUnits' ? 'imei_units' : p.table;
   for (const row of p.rows) {
-    const id = String(row.id);
+    const id = String(row['id']);
     // UUID inserts are retry-safe without overwriting an existing financial/stock row.
     if (p.action === 'insert') {
       const { data, error } = await supabase.from(table).select('id').eq('id', id).maybeSingle();
       if (error) throw new Error(error.message);
       if (data) continue;
     }
-    const result = p.action === 'delete' ? await supabase.from(table).delete().eq('id', id) : p.action === 'update' ? await supabase.from(table).update(row).eq('id', id) : await supabase.from(table).insert(row as never);
+    const result = p.action === 'delete' ? await supabase.from(table).delete().eq('id', id) : p.action === 'update' ? await supabase.from(table).update(row as never).eq('id', id) : await supabase.from(table).insert(row as never);
     if (result.error) throw new Error(result.error.message);
   }
   for (const row of p.units ?? []) {
-    const { data, error } = await supabase.from('imei_units').select('id').eq('id', String(row.id)).maybeSingle();
+    const { data, error } = await supabase.from('imei_units').select('id').eq('id', String(row['id'])).maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) { const result = await supabase.from('imei_units').insert(row as never); if (result.error) throw new Error(result.error.message); }
   }
