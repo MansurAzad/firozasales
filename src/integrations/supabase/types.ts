@@ -580,6 +580,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_staff: { Args: { _uid: string }; Returns: boolean }
       issue_imei: {
         Args: { p_imei: string; p_issue_id: string }
         Returns: string
