@@ -5,11 +5,12 @@
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA, type VitePluginPWAAPI } from 'vite-plugin-pwa';
 
 export default defineConfig({
   vite: {
     plugins: [VitePWA({
+      integration: { closeBundleOrder: 'post' },
       strategies: 'generateSW', filename: 'sw.js', registerType: 'autoUpdate', injectRegister: null,
       outDir: 'dist/client',
       devOptions: { enabled: false }, manifest: false,
@@ -23,7 +24,16 @@ export default defineConfig({
           { urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'fe-fonts', expiration: { maxEntries: 30 } } },
         ],
       },
-    })],
+    }), {
+      name: 'fe-pwa-after-prerender',
+      apply: 'build',
+      enforce: 'post',
+      buildApp: { order: 'post', async handler(builder) {
+        const plugin = builder.config.plugins.find(p => p.name === 'vite-plugin-pwa');
+        const api = plugin?.api as VitePluginPWAAPI | undefined;
+        if (api) await api.generateSW();
+      } },
+    }],
   },
   tanstackStart: {
     spa: { enabled: true, maskPath: '/auth', prerender: { outputPath: '/_shell' } },
