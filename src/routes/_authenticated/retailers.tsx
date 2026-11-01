@@ -41,8 +41,8 @@ function RetailersPage() {
     queryFn: async () => {
       const [retailersRes, salesRes, paymentsRes] = await Promise.all([
         supabase.from("retailers").select("id, name, phone, address, is_active").order("name"),
-        supabase.from("sales").select("id, retailer_id, total_amount, paid_amount"),
-        supabase.from("retailer_payments").select("id, retailer_id, amount"),
+        supabase.from("sales").select("id, retailer_id, salesman_id, total_amount, paid_amount"),
+        supabase.from("retailer_payments").select("id, retailer_id, salesman_id, amount"),
       ]);
       return {
         retailers: retailersRes.data ?? [],
@@ -143,8 +143,8 @@ function RetailerList({
   data:
     | {
         retailers: RetailerRow[];
-        sales: { id: string; retailer_id: string; total_amount: string; paid_amount: string }[];
-        payments: { id: string; retailer_id: string; amount: string }[];
+        sales: { id: string; retailer_id: string; salesman_id: string; total_amount: string; paid_amount: string }[];
+        payments: { id: string; retailer_id: string; salesman_id: string; amount: string }[];
       }
     | undefined;
   isAdmin: boolean;
@@ -198,10 +198,6 @@ function RetailerList({
   return (
     <div className="card">
       {data.retailers.map((r) => {
-        // Salesman sees only his own ledger numbers; admin sees everything.
-        const sales = data.sales.filter(
-          (s) => s.retailer_id === r.id && (isAdmin || s.salesman_id === undefined),
-        );
         return (
           <div key={r.id} className="row">
             {editing?.id === r.id ? (
