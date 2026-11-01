@@ -7,7 +7,9 @@ import { AppShell } from "@/components/AppShell";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { useServerFn } from "@tanstack/react-start";
-import { createSalesmanAccount } from "@/lib/admin.functions";
+import { createSalesmanAccount, listSalesmanAccounts } from "@/lib/admin.functions";
+import { SrPasswordReset } from "@/components/SrPasswordReset";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/salesmen")({
@@ -28,24 +30,12 @@ function SalesmenPage() {
   const { t } = useLang();
   const role = useMyRole();
   const queryClient = useQueryClient();
+  const listFn = useServerFn(listSalesmanAccounts);
 
   const list = useQuery({
     queryKey: ["salesmen-list"],
-    queryFn: async () => {
-      const { data: roles, error } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "salesman");
-      if (error) throw error;
-      const ids = (roles ?? []).map((r) => r.user_id);
-      if (ids.length === 0) return [];
-      const { data: profiles, error: pErr } = await supabase
-        .from("profiles")
-        .select("id, full_name, is_active, created_at")
-        .in("id", ids);
-      if (pErr) throw pErr;
-      return profiles ?? [];
-    },
+    queryFn: () => listFn(),
+    enabled: role.data?.isAdmin === true && role.data.isActive,
   });
 
   if (role.isLoading) {
@@ -65,6 +55,7 @@ function SalesmenPage() {
     );
   }
 
+  if (list.error) throw list.error;
   return (
     <AppShell title={t("salesmen_title")}>
       <h1 className="page-title mb-4">{t("salesmen_title")}</h1>
@@ -103,9 +94,9 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
+      <Button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
         + {t("add_salesman")}
-      </button>
+      </Button>
     );
   }
 
@@ -139,12 +130,12 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="flex gap-2">
-          <button type="submit" className="btn-primary" disabled={create.isPending}>
+          <Button type="submit" className="btn-primary" disabled={create.isPending}>
             {t("create_account")}
-          </button>
-          <button type="button" className="btn-outline" onClick={() => setOpen(false)}>
+          </Button>
+          <Button type="button" variant="outline" className="btn-outline" onClick={() => setOpen(false)}>
             {t("cancel")}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -155,7 +146,7 @@ function SalesmanList({
   rows,
   onChange,
 }: {
-  rows: { id: string; full_name: string; is_active: boolean; created_at: string }[] | undefined;
+  rows: { id: string; email: string; full_name: string; is_active: boolean; created_at: string }[] | undefined;
   onChange: () => void;
 }) {
   const { t } = useLang();
@@ -178,21 +169,25 @@ function SalesmanList({
         <div key={row.id} className="row">
           <div>
             <div className="font-semibold text-foreground">{row.full_name || "—"}</div>
+            <div className="break-all text-sm text-muted-foreground">{row.email}</div>
             <div className="text-xs text-muted-foreground">
               {new Date(row.created_at).toLocaleDateString()}
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <SrPasswordReset userId={row.id} name={row.full_name} email={row.email} />
             <span className={row.is_active ? "badge-ok" : "badge-warn"}>
               {row.is_active ? t("active") : t("inactive")}
             </span>
-            <button
+            <Button
+              variant="outline"
+              disabled={toggle.isPending}
               type="button"
               className="btn-outline btn-sm"
               onClick={() => toggle.mutate(row)}
             >
               {row.is_active ? t("deactivate") : t("activate")}
-            </button>
+            </Button>
           </div>
         </div>
       ))}

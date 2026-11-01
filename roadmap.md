@@ -1,6 +1,7 @@
 # Tasks
 - [x] Make mansurazad@gmail.com admin and remaining two accounts SR; identify SR emails.
-- [ ] Provide SR password recovery — existing passwords cannot be retrieved; waiting for reset choice.
+- [x] Add active-admin-only SR password reset and email display; verify authenticated form and mismatch guard with 25 passing tests.
+- [ ] Verify an actual SR password change and subsequent sign-in — waiting for the admin to set a chosen password; existing credentials were not changed.
 - [x] Apply FE MANAGEMENT / FIROZA ENTERPRISE branding.
 - [x] Audit accounting and implement atomic posting, balance/stock guards, immutable records, activation controls and complete financial reads.
 - [x] Dealers are the existing retailers.
