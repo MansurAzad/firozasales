@@ -6,10 +6,10 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA, type VitePluginPWAAPI } from 'vite-plugin-pwa';
-import { existsSync, cpSync, readdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 // Vercel builds (NITRO_PRESET=vercel) publish static files from .vercel/output/static.
-const clientDir = 'dist/client';
-const vercelStatic = process.env.NITRO_PRESET === 'vercel' ? '.vercel/output/static' : null;
+// Outside Lovable builds, the vercel preset writes client files and the prerendered shell there.
+const clientDir = process.env.NITRO_PRESET === 'vercel' && !process.env.LOVABLE_SANDBOX && !process.env.DEV_SERVER__PROJECT_PATH ? '.vercel/output/static' : 'dist/client';
 import companyLogo from './src/assets/firoza-logo.png.asset.json';
 
 export default defineConfig({
@@ -42,8 +42,6 @@ export default defineConfig({
         if (!existsSync(`${clientDir}/_shell.html`) && builder.config.mode === 'development') return;
         if (!existsSync(`${clientDir}/_shell.html`)) throw new Error('Offline anonymous shell was not generated');
         if (api) await api.generateSW();
-        // Copy the offline shell and service worker files generated after Nitro's Vercel output.
-        if (vercelStatic && existsSync(vercelStatic)) for (const f of readdirSync(clientDir)) if (/^(_shell\.html|sw\.js|workbox-.*\.js)$/.test(f)) cpSync(`${clientDir}/${f}`, `${vercelStatic}/${f}`);
       } },
     }],
   },
