@@ -9,7 +9,7 @@ import { useMyRole } from "@/lib/role";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBDT, toNumber } from "@/lib/money";
 
-export const Route = createFileRoute("/_authenticated/retailers")({
+export const Route = createFileRoute("/_authenticated/retailers/")({
   head: () => ({
     meta: [
       { title: "রিটেইলার — মোবাইল হিসাব" },
