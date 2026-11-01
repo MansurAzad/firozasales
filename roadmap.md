@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Make mansurazad@gmail.com admin and remaining two accounts SR; provide SR emails and a safe password option.
 - [x] Apply FE MANAGEMENT / FIROZA ENTERPRISE branding.
 - [x] Audit accounting and implement atomic posting, balance/stock guards, immutable records, activation controls and complete financial reads.
 - [x] Dealers are the existing retailers.
