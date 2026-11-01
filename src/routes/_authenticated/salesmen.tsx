@@ -162,10 +162,7 @@ function SalesmanList({
 
   const toggle = useMutation({
     mutationFn: async (row: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_active: !row.is_active })
-        .eq("id", row.id);
+      const { error } = await supabase.rpc('set_sr_active', { p_user_id: row.id, p_active: !row.is_active });
       if (error) throw error;
     },
     onSuccess: onChange,

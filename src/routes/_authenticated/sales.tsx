@@ -1,3 +1,4 @@
+import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -103,6 +104,7 @@ function AdminSales() {
 function SalesmanSales({ userId }: { userId: string }) {
   const { t } = useLang();
   const queryClient = useQueryClient();
+  const post = usePosting();
   const [retailerId, setRetailerId] = useState("");
   const [items, setItems] = useState<DraftItem[]>([]);
   const [pickProduct, setPickProduct] = useState("");
@@ -155,47 +157,8 @@ function SalesmanSales({ userId }: { userId: string }) {
   const submit = useMutation({
     mutationFn: async () => {
       if (!retailerId || items.length === 0) throw new Error(t("noData"));
-      const { data: sale, error } = await supabase
-        .from("sales")
-        .insert({
-          salesman_id: userId,
-          retailer_id: retailerId,
-          total_amount: total,
-          paid_amount: paid,
-          note,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      for (const item of items) {
-        if (item.product.category === "button_phone") {
-          const { error: e } = await supabase.from("sale_items").insert({
-            sale_id: sale.id,
-            product_id: item.product.id,
-            quantity: item.qty,
-            unit_price: item.unitPrice,
-          });
-          if (e) throw e;
-        } else {
-          for (const unit of item.units) {
-            const { error: e } = await supabase.from("sale_items").insert({
-              sale_id: sale.id,
-              product_id: item.product.id,
-              quantity: 1,
-              unit_price: item.unitPrice,
-              imei_unit_id: unit.id,
-            });
-            if (e) throw e;
-            const { error: rpcError } = await supabase.rpc("sell_imei", {
-              p_imei: unit.imei,
-              p_sale_id: sale.id,
-            });
-            if (rpcError) throw rpcError;
-          }
-        }
-      }
-      return sale.id;
+      if (!validCash(paid,total,true)) throw new Error(t('invalid_cash'));
+      return post('sale', { retailer_id:retailerId, paid_amount:paid, note, items:items.map(i=>({ product_id:i.product.id, quantity:i.qty, unit_price:i.unitPrice, unit_ids:i.units.map(u=>u.id) })) });
     },
     onSuccess: () => {
       toast.success(t("sale_saved"));
@@ -203,7 +166,7 @@ function SalesmanSales({ userId }: { userId: string }) {
       setRetailerId("");
       setCash("");
       setNote("");
-      queryClient.invalidateQueries({ queryKey: ["sales-page", userId] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -370,6 +333,8 @@ function SalesmanSales({ userId }: { userId: string }) {
         <div className="field">
           <label className="label" htmlFor="s-cash">{t("cash_received")}</label>
           <input
+            max={total}
+            step="0.01"
             id="s-cash"
             type="number"
             min="0"
@@ -393,7 +358,7 @@ function SalesmanSales({ userId }: { userId: string }) {
         <button
           type="button"
           className="btn-primary w-full"
-          disabled={!retailerId || items.length === 0 || submit.isPending}
+          disabled={!retailerId || items.length === 0 || !validCash(paid,total,true) || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("save_sale")}

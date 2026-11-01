@@ -1,3 +1,4 @@
+import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -32,41 +33,18 @@ function RetailerLedgerPage() {
   const data = useQuery({
     queryKey: ["retailer-ledger", id, role.data?.userId],
     queryFn: async () => {
-      const uid = role.data?.userId;
-      const isAdmin = role.data?.isAdmin === true;
-      let salesQuery = supabase
-        .from("sales")
-        .select("id, salesman_id, total_amount, paid_amount, sold_at")
-        .eq("retailer_id", id);
-      let paymentsQuery = supabase
-        .from("retailer_payments")
-        .select("id, salesman_id, amount, paid_at, note")
-        .eq("retailer_id", id);
-      if (!isAdmin && uid) {
-        salesQuery = salesQuery.eq("salesman_id", uid);
-        paymentsQuery = paymentsQuery.eq("salesman_id", uid);
-      }
-      const [retailerRes, salesRes, paymentsRes] = await Promise.all([
-        supabase.from("retailers").select("id, name, phone, address").eq("id", id).maybeSingle(),
-        salesQuery.order("sold_at", { ascending: true }),
-        paymentsQuery.order("paid_at", { ascending: true }),
-      ]);
-      const salesmanIds = new Set<string>();
-      for (const s of salesRes.data ?? []) salesmanIds.add(s.salesman_id);
-      for (const p of paymentsRes.data ?? []) salesmanIds.add(p.salesman_id);
-      const profilesRes = salesmanIds.size
-        ? await supabase.from("profiles").select("id, full_name").in("id", [...salesmanIds])
-        : { data: [] as never[] };
-      return {
-        retailer: retailerRes.data,
-        sales: salesRes.data ?? [],
-        payments: paymentsRes.data ?? [],
-        profiles: profilesRes.data ?? [],
-      };
+      const d = await fetchAccounting();
+      const uid=role.data?.userId;
+      const isAdmin=role.data?.isAdmin;
+      return { retailer:d.retailers.find(r=>r.id===id), profiles:d.profiles,
+        sales:d.sales.filter(s=>s.retailer_id===id && (isAdmin || s.salesman_id===uid)),
+        payments:d.payments.filter(s=>s.retailer_id===id && (isAdmin || s.salesman_id===uid)) };
+
     },
     enabled: !!role.data?.userId,
   });
 
+  const post = usePosting();
   const d = data.data;
 
   const totalSales = (d?.sales ?? []).reduce((a, s) => a + toNumber(s.total_amount), 0);
@@ -76,17 +54,12 @@ function RetailerLedgerPage() {
 
   const addPayment = useMutation({
     mutationFn: async (input: { amount: number; note: string }) => {
-      const { error } = await supabase.from("retailer_payments").insert({
-        retailer_id: id,
-        salesman_id: role.data!.userId,
-        amount: input.amount,
-        note: input.note,
-      });
-      if (error) throw error;
+      if (!validCash(input.amount,balance)) throw new Error(t('invalid_cash'));
+      return post('payment', { retailer_id:id, amount:input.amount, note:input.note });
     },
     onSuccess: () => {
       toast.success(t("payment_recorded"));
-      queryClient.invalidateQueries({ queryKey: ["retailer-ledger", id] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -217,7 +190,7 @@ function PaymentCollect({
         onSubmit={(e) => {
           e.preventDefault();
           const n = Number(amount);
-          if (!n || n <= 0) return;
+          if (!validCash(n,balance)) { toast.error(t("invalid_cash")); return; }
           onSubmit(n, note);
           setAmount("");
           setNote("");
@@ -225,7 +198,9 @@ function PaymentCollect({
       >
         <input
           type="number"
-          min="1"
+          min="0.01"
+          step="0.01"
+          max={balance}
           className="input max-w-[160px]"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
@@ -238,7 +213,7 @@ function PaymentCollect({
           onChange={(e) => setNote(e.target.value)}
           placeholder={t("note")}
         />
-        <button type="submit" className="btn-primary" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy || balance<=0}>
           {t("receive_payment")}
         </button>
       </form>

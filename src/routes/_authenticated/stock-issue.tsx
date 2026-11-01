@@ -1,3 +1,4 @@
+import { usePosting, validCash, fetchAccounting } from "@/lib/accounting";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -67,6 +68,7 @@ function StockIssuePage() {
     },
   });
 
+  const post = usePosting();
   const [salesmanId, setSalesmanId] = useState("");
   const [items, setItems] = useState<DraftItem[]>([]);
   const [pickProduct, setPickProduct] = useState("");
@@ -76,45 +78,13 @@ function StockIssuePage() {
       if (!role.data || !salesmanId || items.length === 0) {
         throw new Error(t("noData"));
       }
-      const { data: issue, error } = await supabase
-        .from("stock_issues")
-        .insert({ salesman_id: salesmanId, issued_by: role.data.userId })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      for (const item of items) {
-        if (item.product.category === "button_phone") {
-          const { error: e } = await supabase.from("stock_issue_items").insert({
-            issue_id: issue.id,
-            product_id: item.product.id,
-            quantity: item.qty,
-          });
-          if (e) throw e;
-        } else {
-          for (const unit of item.units) {
-            const { error: e } = await supabase.from("stock_issue_items").insert({
-              issue_id: issue.id,
-              product_id: item.product.id,
-              quantity: 1,
-              imei_unit_id: unit.id,
-            });
-            if (e) throw e;
-            const { error: rpcError } = await supabase.rpc("issue_imei", {
-              p_imei: unit.imei,
-              p_issue_id: issue.id,
-            });
-            if (rpcError) throw rpcError;
-          }
-        }
-      }
-      return issue.id;
+      return post('issue', { salesman_id: salesmanId, items: items.map(i=>({ product_id:i.product.id, quantity:i.qty, unit_ids:i.units.map(u=>u.id) })) });
     },
     onSuccess: () => {
       toast.success(t("issue_created"));
       setItems([]);
       setSalesmanId("");
-      queryClient.invalidateQueries({ queryKey: ["stock-issue-page"] });
+      queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -148,11 +118,11 @@ function StockIssuePage() {
   const checkImei = async (code: string, item: DraftItem) => {
     const { data: unit } = await supabase
       .from("imei_units")
-      .select("id, product_id, status")
+      .select("id, product_id, status, is_damaged")
       .eq("imei", code)
       .maybeSingle();
     if (!unit) return { ok: false, message: t("imei_not_in_stock") };
-    if (unit.status !== "in_dealer_stock") {
+    if (unit.status !== "in_dealer_stock" || unit.is_damaged) {
       return { ok: false, message: t("imei_not_in_stock") };
     }
     if (unit.product_id !== item.product.id) {
@@ -283,7 +253,7 @@ function StockIssuePage() {
         <button
           type="button"
           className="btn-primary w-full"
-          disabled={!salesmanId || items.length === 0 || submit.isPending}
+          disabled={!salesmanId || items.length === 0 || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
           onClick={() => submit.mutate()}
         >
           {t("issue_stock")}
