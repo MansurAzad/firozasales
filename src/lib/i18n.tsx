@@ -185,6 +185,7 @@ const dict: Record<Lang, Record<string, string>> = {
     imei_duplicate: "তালিকায় আগেই আছে",
   },
   en: {
+    nav_reports: "Reports",
     appName: "FE MANAGEMENT",
     companyName: "FIROZA ENTERPRISE",
     invalid_cash: "Enter a valid amount within the due / cash balance",

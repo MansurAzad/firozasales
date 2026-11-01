@@ -217,6 +217,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
             />
           ) : (
             <AddQtyReturn
+              key={scanProduct.id}
               productName={scanProduct.name}
               maxQty={scanProduct.remaining}
               onAdd={(qty, damaged) => {
@@ -386,6 +387,8 @@ function AddQtyReturn({
           type="number"
           min="1"
           max={maxQty}
+          step="1"
+          required
           className="input max-w-[110px]"
           value={qty}
           onChange={(e) => setQty(Number(e.target.value) || 1)}

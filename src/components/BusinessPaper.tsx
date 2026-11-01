@@ -1,7 +1,7 @@
 import { formatBDT } from '@/lib/money';
 import type { BusinessDocument, Report } from '@/lib/reports';
 
-export function BusinessPaper({report,document:doc,subtitle,letter}:{report:Report;document?:BusinessDocument;subtitle?:string;letter?:{subject:string;body:string;date:string;recipient:string}}) {
+export function BusinessPaper({report,document:doc,subtitle,letter}:{report:Report;document?:BusinessDocument | undefined;subtitle?:string | undefined;letter?:{subject:string;body:string;date:string;recipient:string} | undefined}) {
   const chunks: Report['rows'][]=[];
   for(let i=0;i<report.rows.length;i+=12)chunks.push(report.rows.slice(i,i+12));
   if(!chunks.length)chunks.push([]);

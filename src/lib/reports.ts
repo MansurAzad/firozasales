@@ -5,7 +5,7 @@ export type DocumentKind = 'invoice' | 'receipt' | 'issue' | 'return' | 'settlem
 export interface Report { title: string; columns: string[]; rows: (string | number)[][] }
 export interface Filters { from: string; to: string; sr: string; dealer: string }
 export interface BusinessDocument extends Report {
-  reference: string; date: string; party: string; address?: string; phone?: string; sr?: string;
+  reference: string; date: string; party: string; address?: string | undefined; phone?: string | undefined; sr?: string | undefined;
   totals: [string, number][]; note?: string;
 }
 export const reportTitles: Record<ReportKind, string> = {
