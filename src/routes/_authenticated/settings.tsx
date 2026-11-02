@@ -64,6 +64,7 @@ function SettingsPage() {
   }
   return <AppShell title={t('nav_settings')}>
     <h1 className="page-title mb-5 flex items-center gap-2"><Settings className="h-6 w-6" />{t('nav_settings')}</h1>
+    {role.data?.isAdmin && <Button asChild variant="outline" className="mb-4"><Link to="/access-control"><ShieldCheck />{labeLAccess(lang)}</Link></Button>}
     <section className="border-b border-border py-4 space-y-4">
       <h2 className="text-lg font-semibold">{label('অ্যাকাউন্ট ও ভাষা', 'Account & language')}</h2>
       <p className="text-sm text-muted-foreground">{role.data?.fullName} · {role.data?.isAdmin ? 'Admin' : 'SR'}</p>

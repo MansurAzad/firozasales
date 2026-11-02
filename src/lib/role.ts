@@ -13,6 +13,9 @@ export interface MyRole {
 export function useMyRole() {
   return useQuery<MyRole | null>({
     queryKey: ["my-role"],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     queryFn: async () => {
       if (isOffline()) return localAccess();
       const {
