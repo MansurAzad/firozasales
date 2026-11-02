@@ -43,6 +43,13 @@
       "when": 1793595157260,
       "tag": "0005_audited_user_access_management",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793595270829,
+      "tag": "0006_lock_access_management_writes",
+      "breakpoints": true
     }
   ]
 }
