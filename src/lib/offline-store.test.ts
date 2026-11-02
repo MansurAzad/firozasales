@@ -9,6 +9,12 @@ function base(): AccountingSnapshot {
 }
 function entry(kind: LocalEntry['kind'], payload: LocalEntry['payload']): LocalEntry { return { kind, payload, id: 'request', createdAt: '2026-11-01T12:00:00Z' }; }
 describe('offline rules', () => {
+  it('rejects deleting a product referenced by stock issues', () => expect(() => projectEntries(base(), [entry('catalog', { table: 'products', action: 'delete', rows: [{ id: 'p' }] })], { ...actor, isAdmin: true })).toThrow('history exists'));
+  it('rejects deleting a dealer referenced by sales', () => expect(() => projectEntries(base(), [entry('catalog', { table: 'retailers', action: 'delete', rows: [{ id: 'r' }] })], { ...actor, isAdmin: true })).toThrow('history exists'));
+  it('allows deleting an unused product', () => {
+    const data = base(); data.issueItems = [];
+    expect(projectEntries(data, [entry('catalog', { table: 'products', action: 'delete', rows: [{ id: 'p' }] })], { ...actor, isAdmin: true }).products).toHaveLength(0);
+  });
   it('keeps saved accounts separate by authenticated user', async () => {
     await writeAccount('a', () => ({ role: { ...actor, userId: 'a' }, entries: [], extras: {}, snapshot: base() }));
     expect(await readAccount('b')).toBeUndefined(); expect((await readAccount('a'))?.role.userId).toBe('a');

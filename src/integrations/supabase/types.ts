@@ -606,6 +606,10 @@ export type Database = {
         Args: { p_active: boolean; p_user_id: string }
         Returns: undefined
       }
+      set_sr_name: {
+        Args: { p_full_name: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "salesman"

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cachedRead } from "@/lib/offline";
 import { onlineRequired } from "@/lib/offline-store";
+import { Pencil } from 'lucide-react';
 
 export const Route = createFileRoute("/_authenticated/salesmen")({
   head: () => ({
@@ -154,6 +155,16 @@ function SalesmanList({
 }) {
   const { t } = useLang();
 
+  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+  const rename = useMutation({
+    mutationFn: async (input: { id: string; name: string }) => {
+      onlineRequired();
+      const { error } = await supabase.rpc('set_sr_name', { p_user_id: input.id, p_full_name: input.name.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => { setEditing(null); onChange(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const toggle = useMutation({
     mutationFn: async (row: { id: string; is_active: boolean }) => {
       onlineRequired();
@@ -172,6 +183,7 @@ function SalesmanList({
       {rows.map((row) => (
         <div key={row.id} className="grid min-w-0 gap-3 border-b border-border py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div>
+            {editing?.id === row.id && <form className="mb-2 flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); rename.mutate(editing); }}><input aria-label={t('fullName')} className="input min-w-0 flex-1" required maxLength={120} value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /><Button type="submit" disabled={rename.isPending || !editing.name.trim()}>{t('save')}</Button><Button type="button" variant="outline" onClick={() => setEditing(null)}>{t('cancel')}</Button></form>}
             <div className="font-semibold text-foreground">{row.full_name || "—"}</div>
             <div className="break-all text-sm text-muted-foreground">{row.email}</div>
             <div className="text-xs text-muted-foreground">
@@ -179,6 +191,7 @@ function SalesmanList({
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button variant="ghost" size="icon" aria-label={t('edit')} title={t('edit')} onClick={() => setEditing({ id: row.id, name: row.full_name })}><Pencil /></Button>
             <SrPasswordReset userId={row.id} name={row.full_name} email={row.email} />
             <span className={row.is_active ? "badge-ok" : "badge-warn"}>
               {row.is_active ? t("active") : t("inactive")}

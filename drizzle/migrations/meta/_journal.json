@@ -29,6 +29,13 @@
       "when": 1793558421714,
       "tag": "0003_restrict_catalog_reads_active_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793594782089,
+      "tag": "0004_catalog_history_guards_and_sr_names",
+      "breakpoints": true
     }
   ]
 }

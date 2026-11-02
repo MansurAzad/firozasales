@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Languages, House, Package, PackagePlus, ShoppingCart, Store, Wallet, Users, FileChartColumn, Menu } from "lucide-react";
+import { LogOut, Languages, House, Package, PackagePlus, ShoppingCart, Store, Wallet, Users, FileChartColumn, Menu, Settings } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
@@ -28,6 +28,7 @@ const ADMIN_NAV = [
   { to: "/settlement", label: "nav_settlement", icon: Wallet },
   { to: "/salesmen", label: "nav_salesmen", icon: Users },
   { to: "/reports", label: "nav_reports", icon: FileChartColumn },
+  { to: "/settings", label: "nav_settings", icon: Settings },
 ] as const;
 
 const SALESMAN_NAV = [
@@ -76,6 +77,7 @@ export function AppShell({ title, children }: AppShellProps) {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <Button asChild variant="ghost" size="icon" className="h-11 w-11"><Link to="/settings" aria-label={t('nav_settings')} title={t('nav_settings')}><Settings className="h-4 w-4" /></Link></Button>
             <Button
               variant="ghost"
               type="button"
