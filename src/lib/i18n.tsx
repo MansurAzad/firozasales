@@ -10,6 +10,7 @@ export type Lang = "bn" | "en";
 
 const dict: Record<Lang, Record<string, string>> = {
   bn: {
+    nav_settings: "সেটিংস",
     main_navigation: "প্রধান মেনু",
     more_menu: "আরও",
     all_menu: "সকল মেনু",
@@ -188,6 +189,7 @@ const dict: Record<Lang, Record<string, string>> = {
     imei_duplicate: "তালিকায় আগেই আছে",
   },
   en: {
+    nav_settings: "Settings",
     main_navigation: "Main navigation",
     more_menu: "More",
     all_menu: "All menus",

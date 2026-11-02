@@ -18,6 +18,7 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedRetailersRouteImport } from './routes/_authenticated/retailers'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedSalesmenRouteImport } from './routes/_authenticated/salesmen'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSettlementRouteImport } from './routes/_authenticated/settlement'
 import { Route as AuthenticatedStockIssueRouteImport } from './routes/_authenticated/stock-issue'
 import { Route as AuthenticatedRetailersIndexRouteImport } from './routes/_authenticated/retailers.index'
@@ -67,6 +68,11 @@ const AuthenticatedSalesmenRoute = AuthenticatedSalesmenRouteImport.update({
   path: '/salesmen',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettlementRoute = AuthenticatedSettlementRouteImport.update({
   id: '/settlement',
   path: '/settlement',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/retailers': typeof AuthenticatedRetailersRouteWithChildren
   '/sales': typeof AuthenticatedSalesRoute
   '/salesmen': typeof AuthenticatedSalesmenRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/settlement': typeof AuthenticatedSettlementRoute
   '/stock-issue': typeof AuthenticatedStockIssueRoute
   '/retailers/$id': typeof AuthenticatedRetailersIdRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/salesmen': typeof AuthenticatedSalesmenRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/settlement': typeof AuthenticatedSettlementRoute
   '/stock-issue': typeof AuthenticatedStockIssueRoute
   '/retailers/$id': typeof AuthenticatedRetailersIdRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/retailers': typeof AuthenticatedRetailersRouteWithChildren
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/salesmen': typeof AuthenticatedSalesmenRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/settlement': typeof AuthenticatedSettlementRoute
   '/_authenticated/stock-issue': typeof AuthenticatedStockIssueRoute
   '/_authenticated/retailers/$id': typeof AuthenticatedRetailersIdRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/retailers'
     | '/sales'
     | '/salesmen'
+    | '/settings'
     | '/settlement'
     | '/stock-issue'
     | '/retailers/$id'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/sales'
     | '/salesmen'
+    | '/settings'
     | '/settlement'
     | '/stock-issue'
     | '/retailers/$id'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_authenticated/retailers'
     | '/_authenticated/sales'
     | '/_authenticated/salesmen'
+    | '/_authenticated/settings'
     | '/_authenticated/settlement'
     | '/_authenticated/stock-issue'
     | '/_authenticated/retailers/$id'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalesmenRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settlement': {
       id: '/_authenticated/settlement'
       path: '/settlement'
@@ -303,6 +322,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRetailersRoute: typeof AuthenticatedRetailersRouteWithChildren
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSalesmenRoute: typeof AuthenticatedSalesmenRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSettlementRoute: typeof AuthenticatedSettlementRoute
   AuthenticatedStockIssueRoute: typeof AuthenticatedStockIssueRoute
 }
@@ -314,6 +334,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRetailersRoute: AuthenticatedRetailersRouteWithChildren,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSalesmenRoute: AuthenticatedSalesmenRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSettlementRoute: AuthenticatedSettlementRoute,
   AuthenticatedStockIssueRoute: AuthenticatedStockIssueRoute,
 }

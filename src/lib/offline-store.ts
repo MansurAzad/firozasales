@@ -49,7 +49,12 @@ export function projectEntries(base: AccountingSnapshot, entries: LocalEntry[], 
         if (action === 'insert' && index >= 0) throw new Error('Duplicate local ID');
         if (action === 'update' && index < 0) throw new Error('Record unavailable');
         if (table === 'imeiUnits' && d.imeiUnits.some(u => u.imei === row['imei'])) throw new Error('Duplicate IMEI');
-        if (action === 'delete') { if (index >= 0) target.splice(index, 1); }
+        if (action === 'delete') {
+          if (index < 0) throw new Error('Record unavailable');
+          if (table === 'products' && (d.imeiUnits.some(u => u.product_id === row['id']) || d.issueItems.some(i => i.product_id === row['id']) || d.saleItems.some(i => i.product_id === row['id']) || d.returns.some(i => i.product_id === row['id']))) throw new Error('Stock or history exists; deactivate this product instead / স্টক বা ইতিহাস আছে; পণ্য বন্ধ করুন');
+          if (table === 'retailers' && (d.sales.some(s => s.retailer_id === row['id']) || d.payments.some(s => s.retailer_id === row['id']))) throw new Error('Transaction history exists; deactivate this dealer instead / লেনদেন আছে; ডিলার বন্ধ করুন');
+          target.splice(index, 1);
+        }
         else if (index >= 0) Object.assign(target[index] ?? {}, row);
         else target.push({ created_at: date, is_active: true, model: '', price: 0, phone: '', address: '', status: 'in_dealer_stock', current_salesman: null, is_damaged: false, issued_at: null, sold_at: null, returned_at: null, ...row });
       }
