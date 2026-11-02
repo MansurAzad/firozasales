@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Download, Upload, Trash2, Settings, Package, Store, Users, ShieldCheck } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useLang } from '@/lib/i18n';
 import { useMyRole } from '@/lib/role';
 import { supabase } from '@/integrations/supabase/client';
-import { currentLocalAccount, offlineSnapshot, syncOffline } from '@/lib/offline';
+import { currentLocalAccount, forgetLocalIdentity, offlineSnapshot, syncOffline } from '@/lib/offline';
 import { onlineRequired, readAccount, writeAccount } from '@/lib/offline-store';
 import { assertDeviceReplace, backupLimit, createDeviceBackup, parseDeviceBackup } from '@/lib/device-backup';
 
@@ -21,10 +21,11 @@ export const Route = createFileRoute('/_authenticated/settings')({
 });
 function SettingsPage() {
   const { lang, setLang, t } = useLang(), role = useMyRole(), client = useQueryClient();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false), [confirm, setConfirm] = useState(''), [name, setName] = useState('');
   const local = useQuery({ queryKey: ['settings-local'], queryFn: currentLocalAccount });
   const label = (bn: string, en: string) => lang === 'bn' ? bn : en;
-  const project = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const project = import.meta.env['VITE_SUPABASE_PROJECT_ID'];
   async function action(work: () => Promise<void>) {
     setBusy(true);
     try { await work(); await client.invalidateQueries(); toast.success(label('সম্পন্ন হয়েছে', 'Completed')); }
@@ -87,6 +88,6 @@ function SettingsPage() {
       <h3 className="font-semibold text-destructive">{label('সব ব্যবসায়িক হিসাব রিসেট', 'Reset all business accounts')}</h3>
       <p className="text-sm">{label('এই অ্যাপে অনলাইনের সব হিসাব মুছে ফেলার বোতাম যুক্ত করা হয়নি। এতে স্থায়ী হিসাবের ইতিহাস ও অন্য ডিভাইসের বাকি এন্ট্রি অসঙ্গত হবে। পূর্ণ রিসেটের জন্য আগে সম্পূর্ণ ব্যাকআপ, সব SR-এর সিঙ্ক ও পুরোনো হিসাব সংরক্ষণসহ আলাদা রিসেট পরিকল্পনা প্রয়োজন।', 'A full online erase is not enabled. It would break immutable history and other devices’ pending entries. It requires a complete backup, all SR devices synchronized, and a separate audited reset plan preserving prior accounts.')}</p>
     </section>}
-    <section className="py-5 space-y-3"><h2 className="text-lg font-semibold text-destructive">{label('শুধু এই ডিভাইসের সংরক্ষণ রিসেট', 'Reset device cache only')}</h2><p className="text-sm text-muted-foreground">{label('অনলাইনের হিসাব অক্ষত থাকবে। বাকি এন্ট্রি থাকলে রিসেট বন্ধ থাকবে; পরে অফলাইনে খোলার আগে আবার অনলাইনে হিসাব সংরক্ষণ করুন। নিশ্চিত করতে RESET লিখুন।', 'Online accounts remain unchanged. Pending entries block reset. Reconnect to save accounts before using offline again. Type RESET to confirm.')}</p><input aria-label="Reset confirmation" className="input max-w-xs" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="off" /><Button variant="destructive" disabled={busy || confirm !== 'RESET' || !!local.data?.entries.length} onClick={() => void action(async () => { const uid = await verified(); await writeAccount(uid, current => { assertDeviceReplace(current); if (!current) throw new Error('Account unavailable'); return { role: current.role, entries: [], extras: {} }; }); setConfirm(''); })}><Trash2 />{label('ডিভাইসের সংরক্ষণ মুছুন', 'Clear device cache')}</Button></section>
+    <section className="py-5 space-y-3"><h2 className="text-lg font-semibold text-destructive">{label('শুধু এই ডিভাইসের সংরক্ষণ রিসেট', 'Reset device cache only')}</h2><p className="text-sm text-muted-foreground">{label('অনলাইনের হিসাব অক্ষত থাকবে। বাকি এন্ট্রি থাকলে রিসেট বন্ধ থাকবে; সাইন আউট হবে। পরে অফলাইনে খোলার আগে আবার অনলাইনে হিসাব সংরক্ষণ করুন। নিশ্চিত করতে RESET লিখুন।', 'Online accounts remain unchanged. Pending entries block reset. You will be signed out. Reconnect to save accounts before using offline again. Type RESET to confirm.')}</p><input aria-label="Reset confirmation" className="input max-w-xs" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="off" /><Button variant="destructive" disabled={busy || confirm !== 'RESET' || !!local.data?.entries.length} onClick={() => void action(async () => { const uid = await verified(); await client.cancelQueries(); await writeAccount(uid, current => { assertDeviceReplace(current); if (!current) throw new Error('Account unavailable'); return { role: current.role, entries: [], extras: {} }; }); forgetLocalIdentity(); await supabase.auth.signOut(); client.clear(); await navigate({ to: '/auth', replace: true }); })}><Trash2 />{label('ডিভাইসের সংরক্ষণ মুছুন', 'Clear device cache')}</Button></section>
   </AppShell>;
 }
