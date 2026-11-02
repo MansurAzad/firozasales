@@ -36,6 +36,13 @@
       "when": 1793594782089,
       "tag": "0004_catalog_history_guards_and_sr_names",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793595157260,
+      "tag": "0005_audited_user_access_management",
+      "breakpoints": true
     }
   ]
 }

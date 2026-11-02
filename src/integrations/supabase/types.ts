@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_audit: {
+        Row: {
+          actor_id: string
+          changed_at: string
+          id: string
+          new_active: boolean
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_active: boolean
+          old_role: Database["public"]["Enums"]["app_role"]
+          reason: string
+          target_id: string
+        }
+        Insert: {
+          actor_id: string
+          changed_at?: string
+          id?: string
+          new_active: boolean
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_active: boolean
+          old_role: Database["public"]["Enums"]["app_role"]
+          reason: string
+          target_id: string
+        }
+        Update: {
+          actor_id?: string
+          changed_at?: string
+          id?: string
+          new_active?: boolean
+          new_role?: Database["public"]["Enums"]["app_role"]
+          old_active?: boolean
+          old_role?: Database["public"]["Enums"]["app_role"]
+          reason?: string
+          target_id?: string
+        }
+        Relationships: []
+      }
       catalog_requests: {
         Row: {
           actor_id: string
@@ -572,6 +608,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      access_control_snapshot: { Args: never; Returns: Json }
       accounting_snapshot: { Args: never; Returns: Json }
       has_role: {
         Args: {
@@ -584,6 +621,17 @@ export type Database = {
       issue_imei: {
         Args: { p_imei: string; p_issue_id: string }
         Returns: string
+      }
+      manage_user_access: {
+        Args: {
+          p_active: boolean
+          p_expected_active: boolean
+          p_expected_role: Database["public"]["Enums"]["app_role"]
+          p_reason: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: boolean
       }
       post_catalog: {
         Args: { p_payload: Json; p_request_id: string }
