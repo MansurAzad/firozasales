@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Languages, House, Package, PackagePlus, ShoppingCart, Store, Wallet, Users, FileChartColumn, Menu, Settings } from "lucide-react";
+import { LogOut, Languages, House, Package, PackagePlus, ShoppingCart, Store, Wallet, Users, FileChartColumn, Menu, Settings, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
@@ -29,6 +29,7 @@ const ADMIN_NAV = [
   { to: "/salesmen", label: "nav_salesmen", icon: Users },
   { to: "/reports", label: "nav_reports", icon: FileChartColumn },
   { to: "/settings", label: "nav_settings", icon: Settings },
+  { to: "/access-control", label: "nav_access", icon: ShieldCheck },
 ] as const;
 
 const SALESMAN_NAV = [

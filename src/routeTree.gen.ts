@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedProductsRouteImport } from './routes/_authenticated/products'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
@@ -38,6 +39,12 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAccessControlRoute =
+  AuthenticatedAccessControlRouteImport.update({
+    id: '/access-control',
+    path: '/access-control',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -99,6 +106,7 @@ const AuthenticatedRetailersIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/access-control': typeof AuthenticatedAccessControlRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/products': typeof AuthenticatedProductsRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -114,6 +122,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/access-control': typeof AuthenticatedAccessControlRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/products': typeof AuthenticatedProductsRoute
   '/reports': typeof AuthenticatedReportsRoute
@@ -130,6 +139,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/access-control': typeof AuthenticatedAccessControlRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/products': typeof AuthenticatedProductsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/access-control'
     | '/dashboard'
     | '/products'
     | '/reports'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/access-control'
     | '/dashboard'
     | '/products'
     | '/reports'
@@ -177,6 +189,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/access-control'
     | '/_authenticated/dashboard'
     | '/_authenticated/products'
     | '/_authenticated/reports'
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/access-control': {
+      id: '/_authenticated/access-control'
+      path: '/access-control'
+      fullPath: '/access-control'
+      preLoaderRoute: typeof AuthenticatedAccessControlRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
@@ -316,6 +336,7 @@ const AuthenticatedRetailersRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccessControlRoute: typeof AuthenticatedAccessControlRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedProductsRoute: typeof AuthenticatedProductsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
@@ -328,6 +349,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccessControlRoute: AuthenticatedAccessControlRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedProductsRoute: AuthenticatedProductsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
