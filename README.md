@@ -1,29 +1,32 @@
-# Firozasales
+# FE MANAGEMENT
 
-Implement exactly the screenshot and nothing else
+Inventory, sales and accounting for FIROZA ENTERPRISE.
 
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://firozasales.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e986fc70-913e-494e-961c-76487b40b927).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+**Live app**: https://firozasales.vercel.app
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js and Bun to develop locally.
 
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev
 ```
+
+Local Supabase settings belong in the ignored `.env.local` file. Start from
+[`.env.example`](./.env.example) if one is not already present:
+
+```powershell
+if (!(Test-Path .env.local)) { Copy-Item .env.example .env.local }
+```
+
+The Supabase publishable key is intended for browser use. Keep
+`SUPABASE_SERVICE_ROLE_KEY` server-only; it is optional and needed only for
+privileged Auth administration. Never put secrets in `VITE_` variables or
+commit `.env.local`. Keep `SUPABASE_DB_MIGRATION_URL` local and protected; it
+must never be deployed as a browser-visible variable.
 
 Before deploying updates that include financial or inventory changes, review
 the database migration checklist in [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md) and

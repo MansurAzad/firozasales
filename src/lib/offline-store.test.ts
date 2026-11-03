@@ -285,14 +285,10 @@ describe("offline rules", () => {
         isActive: false,
       }),
     ).toThrow());
-  it("blocks preview, iframe, development and kill-switch workers while allowing published domains", () => {
-    expect(refuseServiceWorker("id-preview--abc.lovable.app", true, false, false)).toBe(true);
-    expect(refuseServiceWorker("preview-2--abc.gpt-eng.com", true, false, false)).toBe(true);
-    expect(refuseServiceWorker("project--abc-dev.lovable.app", true, false, false)).toBe(true);
-    expect(refuseServiceWorker("firozasales.lovable.app", true, true, false)).toBe(true);
-    expect(refuseServiceWorker("firozasales.lovable.app", false, false, false)).toBe(true);
-    expect(refuseServiceWorker("firozasales.lovable.app", true, false, true)).toBe(true);
-    expect(refuseServiceWorker("firozasales.lovable.app", true, false, false)).toBe(false);
-    expect(refuseServiceWorker("preview-v2--shop.example.com", true, false, false)).toBe(false);
+  it("blocks iframe, development and kill-switch workers while allowing production domains", () => {
+    expect(refuseServiceWorker(true, true, false)).toBe(true);
+    expect(refuseServiceWorker(false, false, false)).toBe(true);
+    expect(refuseServiceWorker(true, false, true)).toBe(true);
+    expect(refuseServiceWorker(true, false, false)).toBe(false);
   });
 });

@@ -1,1 +1,4 @@
-project_id = "tlgirkagufhrwrcxqvxi"
+project_id = "kjfzlecurkvvkcwlidxc"
+
+[auth]
+enable_signup = true

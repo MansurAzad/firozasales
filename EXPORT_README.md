@@ -8,8 +8,8 @@ Excluded: Git metadata, installed dependencies, generated build output, workspac
 
 ## Run locally
 1. Install Bun.
-2. Configure backend environment variables in your local environment or a local .env file (not included). Variable names and deployment steps are in DEPLOY_VERCEL.md. Do not put private keys in browser configuration. Lovable Cloud does not provide its privileged backend key; the admin password-reset feature remains unavailable on external hosting without a supported privileged backend.
+2. Configure Supabase environment variables in a local `.env.local` file (not included). Variable names and deployment steps are in DEPLOY_VERCEL.md. Do not put private keys in browser configuration. `SUPABASE_SERVICE_ROLE_KEY` is optional and is required only for privileged Auth administration.
 3. Run `bun install`, then `bun run dev`.
 
 ## Deploy
-Follow DEPLOY_VERCEL.md and use the included vercel.json. Backend configuration and authorized sign-in addresses must be configured for the deployed domain. Migrations contain schema/history rules, not a copy of live business data; do not replay migrations onto the existing live database.
+Follow DEPLOY_VERCEL.md and use the included vercel.json. Backend configuration and authorized sign-in addresses must be configured for the deployed domain. Migrations contain schema/history rules, not business data; apply them only to the intended project after inspecting its migration history.

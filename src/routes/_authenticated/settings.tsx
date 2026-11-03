@@ -268,20 +268,8 @@ function SettingsPage() {
           </h2>
           <p className="text-sm">
             {label(
-              "Lovable এ: More → Database → Manage → Settings → Export project data → Export data → Database → Export → Start export। ডাউনলোডের লিংক ইমেইলে অথবা More → Storage-এ পাওয়া যায়। এতে সম্পূর্ণ তথ্য, কাঠামো ও ব্যবহারকারীর অ্যাকাউন্ট থাকে।",
-              "In Lovable: More → Database → Manage → Settings → Export project data → Export data → Database → Export → Start export. Download from the email link or More → Storage. Includes the complete database, structure and user accounts.",
-            )}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {label(
-              "স্বয়ংক্রিয় ব্যাকআপ দিনে একবার, প্রায় ১৪ দিন পর্যন্ত। More → Database → Manage → Backups-এ UTC সময় দেখে Restore to this backup বেছে নিন। এর পরের সব পরিবর্তন হারাবে, কাঠামোও আগের অবস্থায় যাবে এবং কয়েক মিনিট হিসাব ব্যবহার করা যাবে না। আগে বর্তমান তথ্য এক্সপোর্ট করুন; রিস্টোরের পরে অ্যাপ যাচাই করতে হবে।",
-              "Daily snapshots are retained up to roughly 14 days. Check the UTC timestamps at More → Database → Manage → Backups, then Restore to this backup. Later changes are permanently lost, schema also reverts, and the database is unavailable for a few minutes. Export first and test the app afterward.",
-            )}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {label(
-              "স্টোরেজের ফাইল কোনো ব্যাকআপ বা এক্সপোর্টে থাকে না—More → Storage থেকে আলাদা ডাউনলোড করুন। নির্দিষ্ট মুহূর্ত বা শুধু একটি তালিকা রিস্টোর নেই। এক্সপোর্ট: ১৫ GB পর্যন্ত ডেটাবেস, ৫ GB ফাইল, প্রতি ২৪ ঘণ্টায় একবার; ব্যাকএন্ড চালু থাকা প্রয়োজন।",
-              "Storage files are not included in snapshots or exports; download separately from More → Storage. No arbitrary-time or per-table restore. Export limits: 15 GB database, 5 GB file, once every 24 hours; backend must be running.",
+              "সম্পূর্ণ ডেটাবেস ব্যাকআপ ও রিস্টোর Supabase Dashboard → Project → Database → Backups থেকে পরিচালনা করুন। Restore বর্তমান ডেটা ও schema বদলে দিতে পারে—আগে restorable backup নিশ্চিত করুন এবং restore শেষে অ্যাপ যাচাই করুন। Storage-এর ফাইলের জন্য আলাদা backup প্রয়োজন।",
+              "Manage full database backups and restores in Supabase Dashboard → Project → Database → Backups. A restore can replace current data and schema; verify a restorable backup first, then test the app afterward. Storage files need a separate backup.",
             )}
           </p>
           <h3 className="font-semibold text-destructive">
