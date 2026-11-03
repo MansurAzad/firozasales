@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { localAccess } from '@/lib/offline';
-import { isOffline } from '@/lib/offline-store';
+import { localAccess } from "@/lib/offline";
+import { isOffline } from "@/lib/offline-store";
 
 // Integration-managed-style gate for the whole app: client-only session check.
 export const Route = createFileRoute("/_authenticated")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     if (isOffline()) {
       if (await localAccess()) return;
-      throw redirect({ to: '/auth' });
+      throw redirect({ to: "/auth" });
     }
     const {
       data: { user },

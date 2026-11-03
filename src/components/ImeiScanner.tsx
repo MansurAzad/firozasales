@@ -77,6 +77,9 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
     }
   }
 
+  const handlersRef = useRef({ handleCode, t });
+  handlersRef.current = { handleCode, t };
+
   useEffect(() => {
     if (!scanning) return;
     let cancelled = false;
@@ -84,7 +87,12 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
     let started = false;
     async function release() {
       if (!instance) return;
-      try { if (started) await instance.stop(); instance.clear(); } catch {}
+      try {
+        if (started) await instance.stop();
+        instance.clear();
+      } catch (error) {
+        console.warn("Could not stop the IMEI scanner cleanly", error);
+      }
       if (scannerRef.current === instance) scannerRef.current = null;
     }
     async function start() {
@@ -92,27 +100,55 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
         if (cancelled) return;
         const scanner = new Html5Qrcode(regionId, {
-          formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.ITF], verbose: false,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.ITF,
+          ],
+          verbose: false,
         });
         instance = scanner;
         scannerRef.current = scanner;
-        await scanner.start({ facingMode: "environment" }, {
-          fps: 10,
-          qrbox: (width: number, height: number) => ({width: Math.min(260, Math.floor(width * 0.85)), height: Math.min(170, Math.floor(height * 0.7))}),
-        }, (text: string) => { if (!cancelled) void handleCode(text); }, () => {});
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: (width: number, height: number) => ({
+              width: Math.min(260, Math.floor(width * 0.85)),
+              height: Math.min(170, Math.floor(height * 0.7)),
+            }),
+          },
+          (text: string) => {
+            if (!cancelled) void handlersRef.current.handleCode(text);
+          },
+          () => {},
+        );
         started = true;
         if (cancelled) await release();
       } catch {
         await release();
-        if (!cancelled) { setScanning(false); setSignal({ok:false,message:t("camera_error")}); vibrateError(); }
+        if (!cancelled) {
+          setScanning(false);
+          setSignal({ ok: false, message: handlersRef.current.t("camera_error") });
+          vibrateError();
+        }
       }
     }
     void start();
-    return () => { cancelled = true; if (started) void release(); };
+    return () => {
+      cancelled = true;
+      if (started) void release();
+    };
   }, [scanning, regionId]);
 
-  function startScan() { setSignal(null); setScanning(true); }
-  function stopScan() { setScanning(false); }
+  function startScan() {
+    setSignal(null);
+    setScanning(true);
+  }
+  function stopScan() {
+    setScanning(false);
+  }
 
   return (
     <div className="rounded-xl border border-border bg-secondary/40 p-3">
@@ -139,13 +175,8 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
 
       {scanning ? (
         <div className="mb-2">
-          <div
-            id={regionId}
-            className="mx-auto max-w-sm overflow-hidden rounded-lg"
-          />
-          <p className="mt-1 text-center text-xs text-muted-foreground">
-            {t("scanning")}
-          </p>
+          <div id={regionId} className="mx-auto max-w-sm overflow-hidden rounded-lg" />
+          <p className="mt-1 text-center text-xs text-muted-foreground">{t("scanning")}</p>
         </div>
       ) : null}
 

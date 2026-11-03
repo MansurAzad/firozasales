@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { localAccess, saveRole } from './offline';
-import { isOffline } from './offline-store';
+import { localAccess, saveRole } from "./offline";
+import { isOffline } from "./offline-store";
 
 export interface MyRole {
   userId: string;
@@ -22,14 +22,15 @@ export function useMyRole() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return null;
-      const [{ data: isAdmin, error: roleError }, { data: profile, error: profileError }] = await Promise.all([
-        supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
-        supabase
-          .from("profiles")
-          .select("id, full_name, is_active")
-          .eq("id", user.id)
-          .maybeSingle(),
-      ]);
+      const [{ data: isAdmin, error: roleError }, { data: profile, error: profileError }] =
+        await Promise.all([
+          supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
+          supabase
+            .from("profiles")
+            .select("id, full_name, is_active")
+            .eq("id", user.id)
+            .maybeSingle(),
+        ]);
       if (roleError || profileError) throw new Error((roleError || profileError)?.message);
       const role = {
         userId: user.id,

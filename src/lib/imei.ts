@@ -27,11 +27,7 @@ export function isPlausibleImei(code: string): boolean {
 
 export interface TransitionCheck {
   ok: boolean;
-  reason:
-    | "unknown_imei"
-    | "not_plausible"
-    | "wrong_status"
-    | "ok";
+  reason: "unknown_imei" | "not_plausible" | "wrong_status" | "ok";
 }
 
 export function checkTransition(

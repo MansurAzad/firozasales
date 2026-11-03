@@ -1,115 +1,536 @@
-import type { AccountingSnapshot } from './accounting';
+import type { AccountingSnapshot } from "./accounting";
+import { businessDateKey, displayBusinessDate } from "./business-time";
 
-export type ReportKind = 'sales' | 'payments' | 'issues' | 'returns' | 'deposits' | 'settlements' | 'products' | 'imei' | 'dealers' | 'sr' | 'ledger';
-export type DocumentKind = 'invoice' | 'receipt' | 'issue' | 'return' | 'settlement' | 'letterhead';
-export interface Report { title: string; columns: string[]; rows: (string | number)[][] }
-export interface Filters { from: string; to: string; sr: string; dealer: string }
+export type ReportKind =
+  | "sales"
+  | "payments"
+  | "issues"
+  | "returns"
+  | "deposits"
+  | "settlements"
+  | "products"
+  | "imei"
+  | "dealers"
+  | "sr"
+  | "ledger"
+  | "procurement"
+  | "credit_notes";
+export type DocumentKind =
+  "invoice" | "receipt" | "issue" | "return" | "settlement" | "credit_note" | "letterhead";
+export interface Report {
+  title: string;
+  columns: string[];
+  rows: (string | number)[][];
+}
+export interface Filters {
+  from: string;
+  to: string;
+  sr: string;
+  dealer: string;
+}
 export interface BusinessDocument extends Report {
-  reference: string; date: string; party: string; address?: string | undefined; phone?: string | undefined; sr?: string | undefined;
-  totals: [string, number][]; note?: string;
+  reference: string;
+  date: string;
+  party: string;
+  address?: string | undefined;
+  phone?: string | undefined;
+  sr?: string | undefined;
+  totals: [string, number][];
+  note?: string;
 }
 export const reportTitles: Record<ReportKind, string> = {
-  sales: 'Sales / বিক্রি', payments: 'Collections / আদায়', issues: 'Stock issues / মাল ইস্যু',
-  returns: 'Returns / ফেরত', deposits: 'Deposits / জমা', settlements: 'Settlements / সেটেলমেন্ট',
-  products: 'Products / পণ্য', imei: 'IMEI register / IMEI তালিকা', dealers: 'Dealer balances / ডিলার হিসাব', sr: 'SR balances / SR হিসাব',
-  ledger: 'Dealer ledger / ডিলার লেজার',
+  sales: "Sales / বিক্রি",
+  payments: "Collections / আদায়",
+  issues: "Stock issues / মাল ইস্যু",
+  returns: "Returns / ফেরত",
+  deposits: "Deposits / জমা",
+  settlements: "Settlements / সেটেলমেন্ট",
+  products: "Products / পণ্য",
+  imei: "IMEI register / IMEI তালিকা",
+  dealers: "Dealer balances / ডিলার হিসাব",
+  sr: "SR balances / SR হিসাব",
+  ledger: "Dealer ledger / ডিলার লেজার",
+  procurement: "Procurement costs / ক্রয়মূল্য",
+  credit_notes: "Dealer credit notes / ডিলার ক্রেডিট নোট",
 };
 export const documentTitles: Record<DocumentKind, string> = {
-  invoice: 'SALES INVOICE / বিক্রয় চালান', receipt: 'MONEY RECEIPT / টাকা প্রাপ্তির রসিদ',
-  issue: 'STOCK ISSUE VOUCHER / মাল ইস্যু', return: 'STOCK RETURN VOUCHER / মাল ফেরত',
-  settlement: 'SETTLEMENT VOUCHER / হিসাব নিষ্পত্তি', letterhead: 'LETTERHEAD / প্রতিষ্ঠানের প্যাড',
+  invoice: "SALES INVOICE / বিক্রয় চালান",
+  receipt: "MONEY RECEIPT / টাকা প্রাপ্তির রসিদ",
+  issue: "STOCK ISSUE VOUCHER / মাল ইস্যু",
+  return: "STOCK RETURN VOUCHER / মাল ফেরত",
+  settlement: "SETTLEMENT VOUCHER / হিসাব নিষ্পত্তি",
+  letterhead: "LETTERHEAD / প্রতিষ্ঠানের প্যাড",
+  credit_note: "DEALER CREDIT NOTE / ডিলার ক্রেডিট নোট",
 };
 export const reference = (prefix: string, id: string) => `${prefix}-${id.toUpperCase()}`;
-export const displayDate = (date: string) => date ? new Date(date).toLocaleString('en-GB') : '—';
+export const displayDate = (date: string) => displayBusinessDate(date);
 export function inDateRange(at: string, from: string, to: string) {
-  const date = at.slice(0, 10);
+  const date = businessDateKey(at);
   return (!from || date >= from) && (!to || date <= to);
 }
 export function buildReport(d: AccountingSnapshot, kind: ReportKind, f: Filters): Report {
-  const name = (id: string) => d.profiles.find(p => p.id === id)?.full_name || id;
-  const dealer = (id: string) => d.retailers.find(p => p.id === id)?.name || id;
-  const product = (id: string) => d.products.find(p => p.id === id)?.name || id;
-  const unit = (id: string | null) => d.imeiUnits.find(u => u.id === id)?.imei || '—';
-  const match = (at: string, sr: string, rid?: string) => inDateRange(at, f.from, f.to) && (!f.sr || sr === f.sr) && (!f.dealer || rid === f.dealer);
-  const sales = d.sales.filter(s => match(s.sold_at, s.salesman_id, s.retailer_id));
-  const payments = d.payments.filter(s => match(s.paid_at, s.salesman_id, s.retailer_id));
-  let columns: string[] = [], rows: Report['rows'] = [];
+  const name = (id: string) => d.profiles.find((p) => p.id === id)?.full_name || id;
+  const dealer = (id: string) => d.retailers.find((p) => p.id === id)?.name || id;
+  const product = (id: string) => d.products.find((p) => p.id === id)?.name || id;
+  const unit = (id: string | null) => d.imeiUnits.find((u) => u.id === id)?.imei || "—";
+  const match = (at: string, sr: string, rid?: string) =>
+    inDateRange(at, f.from, f.to) && (!f.sr || sr === f.sr) && (!f.dealer || rid === f.dealer);
+  const sales = d.sales.filter((s) => match(s.sold_at, s.salesman_id, s.retailer_id));
+  const payments = d.payments.filter((s) => match(s.paid_at, s.salesman_id, s.retailer_id));
+  let columns: string[] = [],
+    rows: Report["rows"] = [];
   switch (kind) {
-    case 'ledger': {
-      columns=['Dealer','Date','Reference','SR','Debit (BDT)','Credit (BDT)','Running due (BDT)'];
-      const entries=[...d.sales.map(s=>({at:s.sold_at,rid:s.retailer_id,sid:s.salesman_id,ref:reference('INV',s.id),debit:s.total_amount,credit:s.paid_amount})),...d.payments.map(p=>({at:p.paid_at,rid:p.retailer_id,sid:p.salesman_id,ref:reference('MR',p.id),debit:0,credit:p.amount}))].filter(e=>(!f.sr||e.sid===f.sr)&&(!f.dealer||e.rid===f.dealer)&&(!f.to||e.at.slice(0,10)<=f.to)).sort((a,b)=>a.at.localeCompare(b.at)||a.ref.localeCompare(b.ref));
-      const balances=new Map<string,number>();
-      for(const e of entries){const balance=(balances.get(e.rid)??0)+e.debit-e.credit;balances.set(e.rid,balance);if(!f.from||e.at.slice(0,10)>=f.from)rows.push([dealer(e.rid),displayDate(e.at),e.ref,name(e.sid),e.debit,e.credit,balance]);}
+    case "ledger": {
+      columns = [
+        "Dealer",
+        "Date",
+        "Reference",
+        "SR",
+        "Debit (BDT)",
+        "Credit (BDT)",
+        "Running due (BDT)",
+      ];
+      const entries = [
+        ...d.sales.map((s) => ({
+          at: s.sold_at,
+          rid: s.retailer_id,
+          sid: s.salesman_id,
+          ref: reference("INV", s.id),
+          debit: s.total_amount,
+          credit: s.paid_amount,
+        })),
+        ...d.payments.map((p) => ({
+          at: p.paid_at,
+          rid: p.retailer_id,
+          sid: p.salesman_id,
+          ref: reference("MR", p.id),
+          debit: 0,
+          credit: p.amount,
+        })),
+        ...d.dealerReturns.map((r) => ({
+          at: r.created_at,
+          rid: r.retailer_id,
+          sid: r.salesman_id,
+          ref: reference("CN", r.id),
+          debit: 0,
+          credit: r.credit_amount,
+        })),
+      ]
+        .filter(
+          (e) =>
+            (!f.sr || e.sid === f.sr) &&
+            (!f.dealer || e.rid === f.dealer) &&
+            (!f.to || businessDateKey(e.at) <= f.to),
+        )
+        .sort((a, b) => a.at.localeCompare(b.at) || a.ref.localeCompare(b.ref));
+      const balances = new Map<string, number>();
+      for (const e of entries) {
+        const balance = (balances.get(e.rid) ?? 0) + e.debit - e.credit;
+        balances.set(e.rid, balance);
+        if (!f.from || businessDateKey(e.at) >= f.from)
+          rows.push([
+            dealer(e.rid),
+            displayDate(e.at),
+            e.ref,
+            name(e.sid),
+            e.debit,
+            e.credit,
+            balance,
+          ]);
+      }
       break;
     }
-    case 'sales': columns = ['Reference','Date','Dealer','SR','Total (BDT)','Cash (BDT)','Due at sale (BDT)','Note']; rows = sales.map(s => [reference('INV',s.id),displayDate(s.sold_at),dealer(s.retailer_id),name(s.salesman_id),s.total_amount,s.paid_amount,s.total_amount-s.paid_amount,s.note]); break;
-    case 'payments': columns = ['Reference','Date','Dealer','SR','Amount (BDT)','Note']; rows = payments.map(s => [reference('MR',s.id),displayDate(s.paid_at),dealer(s.retailer_id),name(s.salesman_id),s.amount,s.note]); break;
-    case 'issues': {
-      columns = ['Reference','Date','SR','Product','Quantity','IMEI'];
-      const parents = d.stockIssues.filter(s => match(s.issued_at,s.salesman_id));
-      rows = parents.flatMap(s => d.issueItems.filter(i => i.issue_id===s.id).map(i => [reference('ISS',s.id),displayDate(s.issued_at),name(s.salesman_id),product(i.product_id),i.quantity,unit(i.imei_unit_id)])); break;
+    case "sales":
+      columns = [
+        "Reference",
+        "Date",
+        "Dealer",
+        "SR",
+        "Total (BDT)",
+        "Cash (BDT)",
+        "Due at sale (BDT)",
+        "Note",
+      ];
+      rows = sales.map((s) => [
+        reference("INV", s.id),
+        displayDate(s.sold_at),
+        dealer(s.retailer_id),
+        name(s.salesman_id),
+        s.total_amount,
+        s.paid_amount,
+        s.total_amount - s.paid_amount,
+        s.note,
+      ]);
+      break;
+    case "payments":
+      columns = ["Reference", "Date", "Dealer", "SR", "Amount (BDT)", "Note"];
+      rows = payments.map((s) => [
+        reference("MR", s.id),
+        displayDate(s.paid_at),
+        dealer(s.retailer_id),
+        name(s.salesman_id),
+        s.amount,
+        s.note,
+      ]);
+      break;
+    case "issues": {
+      columns = ["Reference", "Date", "SR", "Product", "Quantity", "IMEI"];
+      const parents = d.stockIssues.filter((s) => match(s.issued_at, s.salesman_id));
+      rows = parents.flatMap((s) =>
+        d.issueItems
+          .filter((i) => i.issue_id === s.id)
+          .map((i) => [
+            reference("ISS", s.id),
+            displayDate(s.issued_at),
+            name(s.salesman_id),
+            product(i.product_id),
+            i.quantity,
+            unit(i.imei_unit_id),
+          ]),
+      );
+      break;
     }
-    case 'returns': columns = ['Reference','Date','SR','Product','Quantity','IMEI','Condition']; rows = d.returns.filter(s=>match(s.returned_at,s.salesman_id)).map(s=>[reference('RET',s.id),displayDate(s.returned_at),name(s.salesman_id),product(s.product_id),s.quantity,unit(s.imei_unit_id),s.is_damaged?'Damaged':'Good']); break;
-    case 'deposits': columns=['Reference','Date','SR','Amount (BDT)','Note']; rows=d.deposits.filter(s=>match(s.deposited_at,s.salesman_id)).map(s=>[reference('DEP',s.id),displayDate(s.deposited_at),name(s.salesman_id),s.amount,s.note]); break;
-    case 'settlements': columns=['Reference','Date','SR','Returned pcs','Deposited (BDT)','Note']; rows=d.settlements.filter(s=>match(s.created_at,s.salesman_id)).map(s=>[reference('SET',s.id),displayDate(s.created_at),name(s.salesman_id),d.returns.filter(r=>r.settlement_id===s.id).reduce((a,r)=>a+r.quantity,0),d.deposits.filter(r=>r.settlement_id===s.id).reduce((a,r)=>a+r.amount,0),s.note]); break;
-    case 'products': columns=['Product','Model','Tracking','Price (BDT)','Active']; rows=d.products.map(p=>[p.name,p.model,p.category==='button_phone'?'Quantity / IMEI-free':'IMEI',p.price,p.is_active?'Yes':'No']); break;
-    case 'imei': columns=['Product','IMEI','Status','SR','Condition']; rows=d.imeiUnits.filter(u=>!f.sr||u.current_salesman===f.sr).map(u=>[product(u.product_id),u.imei,u.status,u.current_salesman?name(u.current_salesman):'—',u.is_damaged?'Damaged':'Good']); break;
-    case 'dealers': {
-      columns=['Dealer','Phone','Address','Sales (BDT)','Received (BDT)','Closing due (BDT)'];
-      const cutoffSales=d.sales.filter(s=>(!f.to||s.sold_at.slice(0,10)<=f.to)&&(!f.sr||s.salesman_id===f.sr));
-      const cutoffPayments=d.payments.filter(s=>(!f.to||s.paid_at.slice(0,10)<=f.to)&&(!f.sr||s.salesman_id===f.sr));
-      rows=d.retailers.filter(r=>!f.dealer||r.id===f.dealer).map(r=>{
-        const ss=cutoffSales.filter(s=>s.retailer_id===r.id), pp=cutoffPayments.filter(p=>p.retailer_id===r.id);
-        const total=ss.reduce((a,s)=>a+s.total_amount,0), cash=ss.reduce((a,s)=>a+s.paid_amount,0)+pp.reduce((a,p)=>a+p.amount,0);
-        return [r.name,r.phone,r.address,total,cash,Math.max(0,total-cash)];
-      }); break;
+    case "returns":
+      columns = ["Reference", "Date", "SR", "Product", "Quantity", "IMEI", "Condition"];
+      rows = d.returns
+        .filter((s) => match(s.returned_at, s.salesman_id))
+        .map((s) => [
+          reference("RET", s.id),
+          displayDate(s.returned_at),
+          name(s.salesman_id),
+          product(s.product_id),
+          s.quantity,
+          unit(s.imei_unit_id),
+          s.is_damaged ? "Damaged" : "Good",
+        ]);
+      break;
+    case "deposits":
+      columns = ["Reference", "Date", "SR", "Amount (BDT)", "Note"];
+      rows = d.deposits
+        .filter((s) => match(s.deposited_at, s.salesman_id))
+        .map((s) => [
+          reference("DEP", s.id),
+          displayDate(s.deposited_at),
+          name(s.salesman_id),
+          s.amount,
+          s.note,
+        ]);
+      break;
+    case "settlements":
+      columns = ["Reference", "Date", "SR", "Returned pcs", "Deposited (BDT)", "Note"];
+      rows = d.settlements
+        .filter((s) => match(s.created_at, s.salesman_id))
+        .map((s) => [
+          reference("SET", s.id),
+          displayDate(s.created_at),
+          name(s.salesman_id),
+          d.returns.filter((r) => r.settlement_id === s.id).reduce((a, r) => a + r.quantity, 0),
+          d.deposits.filter((r) => r.settlement_id === s.id).reduce((a, r) => a + r.amount, 0),
+          s.note,
+        ]);
+      break;
+    case "products":
+      columns = ["Product", "Model", "Tracking", "Price (BDT)", "Active"];
+      rows = d.products.map((p) => [
+        p.name,
+        p.model,
+        p.category === "button_phone" ? "Quantity / IMEI-free" : "IMEI",
+        p.price,
+        p.is_active ? "Yes" : "No",
+      ]);
+      break;
+    case "procurement": {
+      columns = [
+        "Reference",
+        "Date",
+        "Source",
+        "Supplier",
+        "Product",
+        "Quantity",
+        "Unit cost (BDT)",
+        "Total cost (BDT)",
+        "Note",
+      ];
+      rows = d.inventoryReceipts
+        .filter((receipt) => inDateRange(receipt.received_at, f.from, f.to))
+        .flatMap((receipt) =>
+          d.inventoryReceiptItems
+            .filter((item) => item.receipt_id === receipt.id)
+            .map((item) => [
+              reference("RCV", receipt.id),
+              displayDate(receipt.received_at),
+              receipt.source === "opening" ? "Opening balance" : "Purchase",
+              receipt.supplier || "—",
+              product(item.product_id),
+              item.quantity,
+              item.unit_cost,
+              item.quantity * item.unit_cost,
+              receipt.note,
+            ]),
+        );
+      break;
     }
-    case 'sr': {
-      columns=['SR','Collected (BDT)','Deposited (BDT)','Cash on hand (BDT)','Remaining pcs'];
-      const ids=new Set(d.roles.filter(r=>r.role==='salesman').map(r=>r.user_id));
-      const before=(at:string)=>!f.to||at.slice(0,10)<=f.to;
-      rows=d.profiles.filter(p=>ids.has(p.id)&&(!f.sr||p.id===f.sr)).map(p=>{
-        const ss=d.sales.filter(s=>s.salesman_id===p.id&&before(s.sold_at));
-        const cash=ss.reduce((a,s)=>a+s.paid_amount,0)+d.payments.filter(s=>s.salesman_id===p.id&&before(s.paid_at)).reduce((a,s)=>a+s.amount,0);
-        const dep=d.deposits.filter(s=>s.salesman_id===p.id&&before(s.deposited_at)).reduce((a,s)=>a+s.amount,0);
-        const ii=new Set(d.stockIssues.filter(s=>s.salesman_id===p.id&&before(s.issued_at)).map(s=>s.id)), si=new Set(ss.map(s=>s.id));
-        const qty=d.issueItems.filter(i=>ii.has(i.issue_id)).reduce((a,i)=>a+i.quantity,0)-d.saleItems.filter(i=>si.has(i.sale_id)).reduce((a,i)=>a+i.quantity,0)-d.returns.filter(r=>r.salesman_id===p.id&&before(r.returned_at)).reduce((a,r)=>a+r.quantity,0);
-        return [p.full_name,cash,dep,cash-dep,qty];
-      }); break;
+    case "credit_notes": {
+      columns = [
+        "Credit note",
+        "Date",
+        "Invoice",
+        "Dealer",
+        "SR",
+        "Returned value (BDT)",
+        "Cash refund (BDT)",
+        "Balance credit (BDT)",
+        "Note",
+      ];
+      rows = d.dealerReturns
+        .filter((row) => match(row.created_at, row.salesman_id, row.retailer_id))
+        .map((row) => [
+          reference("CN", row.id),
+          displayDate(row.created_at),
+          reference("INV", row.sale_id),
+          dealer(row.retailer_id),
+          name(row.salesman_id),
+          row.total_amount,
+          row.refund_amount,
+          row.credit_amount,
+          row.note,
+        ]);
+      break;
+    }
+    case "imei":
+      columns = ["Product", "IMEI", "Status", "SR", "Condition"];
+      rows = d.imeiUnits
+        .filter((u) => !f.sr || u.current_salesman === f.sr)
+        .map((u) => [
+          product(u.product_id),
+          u.imei,
+          u.status,
+          u.current_salesman ? name(u.current_salesman) : "—",
+          u.is_damaged ? "Damaged" : "Good",
+        ]);
+      break;
+    case "dealers": {
+      columns = [
+        "Dealer",
+        "Phone",
+        "Address",
+        "Sales (BDT)",
+        "Received (BDT)",
+        "Closing due (BDT)",
+      ];
+      const cutoffSales = d.sales.filter(
+        (s) => (!f.to || businessDateKey(s.sold_at) <= f.to) && (!f.sr || s.salesman_id === f.sr),
+      );
+      const cutoffPayments = d.payments.filter(
+        (s) => (!f.to || businessDateKey(s.paid_at) <= f.to) && (!f.sr || s.salesman_id === f.sr),
+      );
+      const cutoffCredits = d.dealerReturns.filter(
+        (s) =>
+          (!f.to || businessDateKey(s.created_at) <= f.to) && (!f.sr || s.salesman_id === f.sr),
+      );
+      rows = d.retailers
+        .filter((r) => !f.dealer || r.id === f.dealer)
+        .map((r) => {
+          const ss = cutoffSales.filter((s) => s.retailer_id === r.id),
+            pp = cutoffPayments.filter((p) => p.retailer_id === r.id);
+          const credits = cutoffCredits.filter((p) => p.retailer_id === r.id);
+          const total = ss.reduce((a, s) => a + s.total_amount, 0),
+            cash = ss.reduce((a, s) => a + s.paid_amount, 0) + pp.reduce((a, p) => a + p.amount, 0);
+          const credited = credits.reduce((a, credit) => a + credit.credit_amount, 0);
+          return [r.name, r.phone, r.address, total, cash, Math.max(0, total - cash - credited)];
+        });
+      break;
+    }
+    case "sr": {
+      columns = ["SR", "Collected (BDT)", "Deposited (BDT)", "Cash on hand (BDT)", "Remaining pcs"];
+      const ids = new Set(d.roles.filter((r) => r.role === "salesman").map((r) => r.user_id));
+      const before = (at: string) => !f.to || businessDateKey(at) <= f.to;
+      rows = d.profiles
+        .filter((p) => ids.has(p.id) && (!f.sr || p.id === f.sr))
+        .map((p) => {
+          const ss = d.sales.filter((s) => s.salesman_id === p.id && before(s.sold_at));
+          const cash =
+            ss.reduce((a, s) => a + s.paid_amount, 0) +
+            d.payments
+              .filter((s) => s.salesman_id === p.id && before(s.paid_at))
+              .reduce((a, s) => a + s.amount, 0);
+          const dep = d.deposits
+            .filter((s) => s.salesman_id === p.id && before(s.deposited_at))
+            .reduce((a, s) => a + s.amount, 0);
+          const ii = new Set(
+              d.stockIssues
+                .filter((s) => s.salesman_id === p.id && before(s.issued_at))
+                .map((s) => s.id),
+            ),
+            si = new Set(ss.map((s) => s.id));
+          const qty =
+            d.issueItems.filter((i) => ii.has(i.issue_id)).reduce((a, i) => a + i.quantity, 0) -
+            d.saleItems.filter((i) => si.has(i.sale_id)).reduce((a, i) => a + i.quantity, 0) -
+            d.returns
+              .filter((r) => r.salesman_id === p.id && before(r.returned_at))
+              .reduce((a, r) => a + r.quantity, 0);
+          return [p.full_name, cash, dep, cash - dep, qty];
+        });
+      break;
     }
   }
-  return {title:reportTitles[kind],columns,rows};
+  return { title: reportTitles[kind], columns, rows };
 }
 
-export function buildDocument(d: AccountingSnapshot, kind: DocumentKind, id: string): BusinessDocument | null {
-  const product=(pid:string)=>d.products.find(p=>p.id===pid)?.name||pid;
-  const imei=(uid:string|null)=>d.imeiUnits.find(u=>u.id===uid)?.imei||'—';
-  const sr=(uid:string)=>d.profiles.find(p=>p.id===uid)?.full_name||uid;
-  const base={title:documentTitles[kind],reference:'',date:'',party:'',columns:[] as string[],rows:[] as Report['rows'],totals:[] as [string,number][]};
-  if(kind==='letterhead') return base;
-  if(kind==='invoice') {
-    const s=d.sales.find(s=>s.id===id); if(!s)return null;
-    const r=d.retailers.find(r=>r.id===s.retailer_id);
-    return {...base,reference:reference('INV',s.id),date:displayDate(s.sold_at),party:r?.name||s.retailer_id,address:r?.address,phone:r?.phone,sr:sr(s.salesman_id),note:s.note,
-      columns:['Product / পণ্য','IMEI','Qty','Rate (BDT)','Amount (BDT)'],rows:d.saleItems.filter(i=>i.sale_id===id).map(i=>[product(i.product_id),imei(i.imei_unit_id),i.quantity,i.unit_price,i.quantity*i.unit_price]),
-      totals:[['Total / মোট',s.total_amount],['Cash received / নগদ',s.paid_amount],['Due at sale / চালানে বাকি',s.total_amount-s.paid_amount]]};
+export function buildDocument(
+  d: AccountingSnapshot,
+  kind: DocumentKind,
+  id: string,
+): BusinessDocument | null {
+  const product = (pid: string) => d.products.find((p) => p.id === pid)?.name || pid;
+  const imei = (uid: string | null) => d.imeiUnits.find((u) => u.id === uid)?.imei || "—";
+  const sr = (uid: string) => d.profiles.find((p) => p.id === uid)?.full_name || uid;
+  const base = {
+    title: documentTitles[kind],
+    reference: "",
+    date: "",
+    party: "",
+    columns: [] as string[],
+    rows: [] as Report["rows"],
+    totals: [] as [string, number][],
+  };
+  if (kind === "letterhead") return base;
+  if (kind === "invoice") {
+    const s = d.sales.find((s) => s.id === id);
+    if (!s) return null;
+    const r = d.retailers.find((r) => r.id === s.retailer_id);
+    return {
+      ...base,
+      reference: reference("INV", s.id),
+      date: displayDate(s.sold_at),
+      party: r?.name || s.retailer_id,
+      address: r?.address,
+      phone: r?.phone,
+      sr: sr(s.salesman_id),
+      note: s.note,
+      columns: ["Product / পণ্য", "IMEI", "Qty", "Rate (BDT)", "Amount (BDT)"],
+      rows: d.saleItems
+        .filter((i) => i.sale_id === id)
+        .map((i) => [
+          product(i.product_id),
+          imei(i.imei_unit_id),
+          i.quantity,
+          i.unit_price,
+          i.quantity * i.unit_price,
+        ]),
+      totals: [
+        ["Total / মোট", s.total_amount],
+        ["Cash received / নগদ", s.paid_amount],
+        ["Due at sale / চালানে বাকি", s.total_amount - s.paid_amount],
+      ],
+    };
   }
-  if(kind==='receipt') {
-    const p=d.payments.find(p=>p.id===id); if(!p)return null; const r=d.retailers.find(r=>r.id===p.retailer_id);
-    return {...base,reference:reference('MR',id),date:displayDate(p.paid_at),party:r?.name||p.retailer_id,address:r?.address,phone:r?.phone,sr:sr(p.salesman_id),note:p.note,
-      columns:['Particulars / বিবরণ','Amount (BDT)'],rows:[['Dealer payment / ডিলারের বাকি আদায়',p.amount]],totals:[['Received / প্রাপ্ত',p.amount]]};
+  if (kind === "receipt") {
+    const p = d.payments.find((p) => p.id === id);
+    if (!p) return null;
+    const r = d.retailers.find((r) => r.id === p.retailer_id);
+    return {
+      ...base,
+      reference: reference("MR", id),
+      date: displayDate(p.paid_at),
+      party: r?.name || p.retailer_id,
+      address: r?.address,
+      phone: r?.phone,
+      sr: sr(p.salesman_id),
+      note: p.note,
+      columns: ["Particulars / বিবরণ", "Amount (BDT)"],
+      rows: [["Dealer payment / ডিলারের বাকি আদায়", p.amount]],
+      totals: [["Received / প্রাপ্ত", p.amount]],
+    };
   }
-  if(kind==='issue') {
-    const s=d.stockIssues.find(s=>s.id===id); if(!s)return null;
-    const items=d.issueItems.filter(i=>i.issue_id===id);
-    return {...base,reference:reference('ISS',id),date:displayDate(s.issued_at),party:sr(s.salesman_id),note:s.note,columns:['Product / পণ্য','IMEI','Quantity / পরিমাণ'],rows:items.map(i=>[product(i.product_id),imei(i.imei_unit_id),i.quantity]),totals:[['Total pieces / মোট পিস',items.reduce((a,i)=>a+i.quantity,0)]]};
+  if (kind === "issue") {
+    const s = d.stockIssues.find((s) => s.id === id);
+    if (!s) return null;
+    const items = d.issueItems.filter((i) => i.issue_id === id);
+    return {
+      ...base,
+      reference: reference("ISS", id),
+      date: displayDate(s.issued_at),
+      party: sr(s.salesman_id),
+      note: s.note,
+      columns: ["Product / পণ্য", "IMEI", "Quantity / পরিমাণ"],
+      rows: items.map((i) => [product(i.product_id), imei(i.imei_unit_id), i.quantity]),
+      totals: [["Total pieces / মোট পিস", items.reduce((a, i) => a + i.quantity, 0)]],
+    };
   }
-  if(kind==='return') {
-    const r=d.returns.find(r=>r.id===id); if(!r)return null;
-    return {...base,reference:reference('RET',id),date:displayDate(r.returned_at),party:sr(r.salesman_id),columns:['Product / পণ্য','IMEI','Quantity','Condition'],rows:[[product(r.product_id),imei(r.imei_unit_id),r.quantity,r.is_damaged?'Damaged / নষ্ট':'Good / ভালো']],totals:[['Total pieces / মোট পিস',r.quantity]]};
+  if (kind === "return") {
+    const r = d.returns.find((r) => r.id === id);
+    if (!r) return null;
+    return {
+      ...base,
+      reference: reference("RET", id),
+      date: displayDate(r.returned_at),
+      party: sr(r.salesman_id),
+      columns: ["Product / পণ্য", "IMEI", "Quantity", "Condition"],
+      rows: [
+        [
+          product(r.product_id),
+          imei(r.imei_unit_id),
+          r.quantity,
+          r.is_damaged ? "Damaged / নষ্ট" : "Good / ভালো",
+        ],
+      ],
+      totals: [["Total pieces / মোট পিস", r.quantity]],
+    };
   }
-  const s=d.settlements.find(s=>s.id===id); if(!s)return null;
-  const returns=d.returns.filter(r=>r.settlement_id===id), deps=d.deposits.filter(r=>r.settlement_id===id);
-  return {...base,reference:reference('SET',id),date:displayDate(s.created_at),party:sr(s.salesman_id),note:s.note,
-    columns:['Particulars / বিবরণ','IMEI / Note','Quantity','Deposit (BDT)'],rows:[...returns.map(r=>[`${product(r.product_id)} (${r.is_damaged?'Damaged':'Good'})`,imei(r.imei_unit_id),r.quantity,0]),...deps.map(p=>['Cash deposit / টাকা জমা',p.note,0,p.amount])],totals:[['Returned pieces / ফেরত পিস',returns.reduce((a,r)=>a+r.quantity,0)],['Deposit (BDT) / জমা',deps.reduce((a,p)=>a+p.amount,0)]]};
+  if (kind === "credit_note") {
+    const r = d.dealerReturns.find((row) => row.id === id);
+    if (!r) return null;
+    const retailer = d.retailers.find((row) => row.id === r.retailer_id);
+    const items = d.dealerReturnItems.filter((item) => item.dealer_return_id === r.id);
+    return {
+      ...base,
+      reference: reference("CN", r.id),
+      date: displayDate(r.created_at),
+      party: retailer?.name || r.retailer_id,
+      address: retailer?.address,
+      phone: retailer?.phone,
+      sr: sr(r.salesman_id),
+      note: `${r.note}${r.note ? " · " : ""}Original invoice: ${reference("INV", r.sale_id)}`,
+      columns: ["Product / পণ্য", "IMEI", "Quantity", "Rate (BDT)", "Amount (BDT)", "Condition"],
+      rows: items.map((item) => [
+        product(item.product_id),
+        imei(item.imei_unit_id),
+        item.quantity,
+        item.unit_price,
+        item.quantity * item.unit_price,
+        item.is_damaged ? "Damaged / নষ্ট" : "Good / ভালো",
+      ]),
+      totals: [
+        ["Returned value / ফেরত মূল্য", r.total_amount],
+        ["Cash refund / নগদ ফেরত", r.refund_amount],
+        ["Dealer balance credit / বকেয়া সমন্বয়", r.credit_amount],
+      ],
+    };
+  }
+  const s = d.settlements.find((s) => s.id === id);
+  if (!s) return null;
+  const returns = d.returns.filter((r) => r.settlement_id === id),
+    deps = d.deposits.filter((r) => r.settlement_id === id);
+  return {
+    ...base,
+    reference: reference("SET", id),
+    date: displayDate(s.created_at),
+    party: sr(s.salesman_id),
+    note: s.note,
+    columns: ["Particulars / বিবরণ", "IMEI / Note", "Quantity", "Deposit (BDT)"],
+    rows: [
+      ...returns.map((r) => [
+        `${product(r.product_id)} (${r.is_damaged ? "Damaged" : "Good"})`,
+        imei(r.imei_unit_id),
+        r.quantity,
+        0,
+      ]),
+      ...deps.map((p) => ["Cash deposit / টাকা জমা", p.note, 0, p.amount]),
+    ],
+    totals: [
+      ["Returned pieces / ফেরত পিস", returns.reduce((a, r) => a + r.quantity, 0)],
+      ["Deposit (BDT) / জমা", deps.reduce((a, p) => a + p.amount, 0)],
+    ],
+  };
 }

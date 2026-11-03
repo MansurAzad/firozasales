@@ -24,3 +24,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+Before deploying updates that include financial or inventory changes, review
+the database migration checklist in [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md) and
+apply the required Supabase migrations to the verified project.

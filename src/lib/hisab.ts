@@ -7,16 +7,71 @@ export function sumBy<T>(rows: T[], f: (row: T) => number): number {
 
 export interface AdminData {
   salesmen: { id: string; full_name: string; is_active: boolean }[];
-  products: { id: string; name: string; model: string; price: number; category: string; is_active: boolean }[];
-  imeiUnits: { id: string; product_id: string; imei: string; status: string; is_damaged: boolean; current_salesman: string | null }[];
+  products: {
+    id: string;
+    name: string;
+    model: string;
+    price: number;
+    category: string;
+    is_active: boolean;
+  }[];
+  imeiUnits: {
+    id: string;
+    product_id: string;
+    imei: string;
+    status: string;
+    is_damaged: boolean;
+    current_salesman: string | null;
+  }[];
   retailers: { id: string; name: string; is_active: boolean }[];
-  sales: { id: string; salesman_id: string; retailer_id: string; total_amount: number; paid_amount: number; sold_at: string }[];
-  payments: { id: string; salesman_id: string; retailer_id: string; amount: number; paid_at: string }[];
+  sales: {
+    id: string;
+    salesman_id: string;
+    retailer_id: string;
+    total_amount: number;
+    paid_amount: number;
+    sold_at: string;
+  }[];
+  payments: {
+    id: string;
+    salesman_id: string;
+    retailer_id: string;
+    amount: number;
+    paid_at: string;
+  }[];
   deposits: { id: string; salesman_id: string; amount: number; deposited_at: string }[];
   stockIssues: { id: string; salesman_id: string }[];
   issueItems: { id: string; issue_id: string; product_id: string; quantity: number }[];
   saleItems: { id: string; sale_id: string; product_id: string; quantity: number }[];
-  returns: { id: string; salesman_id: string; product_id: string; quantity: number }[];
+  returns: {
+    id: string;
+    salesman_id: string;
+    product_id: string;
+    quantity: number;
+    is_damaged: boolean;
+  }[];
+  inventoryReceiptItems: { id: string; product_id: string; quantity: number; unit_cost: number }[];
+  dealerReturns: {
+    id: string;
+    retailer_id: string;
+    salesman_id: string;
+    total_amount: number;
+    refund_amount: number;
+    credit_amount: number;
+    note: string;
+    created_at: string;
+  }[];
+  dealerReturnItems: {
+    id: string;
+    dealer_return_id: string;
+    sale_item_id: string;
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    imei_unit_id: string | null;
+    is_damaged: boolean;
+    created_at: string;
+  }[];
 }
 
 /** Pieces issued to each salesman, across all stock issues. */
@@ -34,8 +89,8 @@ export function issuedBySalesman(d: AdminData): Map<string, number> {
 /** Everything the admin dashboards need, read once and aggregated client-side. */
 export async function fetchAdminData(): Promise<AdminData> {
   const d = await fetchAccounting();
-  const ids = new Set(d.roles.filter(r=>r.role==='salesman').map(r=>r.user_id));
-  return { ...d, salesmen: d.profiles.filter(p=>ids.has(p.id)) };
+  const ids = new Set(d.roles.filter((r) => r.role === "salesman").map((r) => r.user_id));
+  return { ...d, salesmen: d.profiles.filter((p) => ids.has(p.id)) };
 }
 
 export interface SalesmanData {
@@ -56,7 +111,13 @@ export interface SalesmanData {
     unit_price: number;
   }[];
   payments: { id: string; retailer_id: string; amount: number; paid_at: string; note: string }[];
-  deposits: { id: string; settlement_id: string | null; amount: number; deposited_at: string; note: string }[];
+  deposits: {
+    id: string;
+    settlement_id: string | null;
+    amount: number;
+    deposited_at: string;
+    note: string;
+  }[];
   returns: {
     id: string;
     settlement_id: string | null;
@@ -66,24 +127,43 @@ export interface SalesmanData {
     is_damaged: boolean;
     returned_at: string;
   }[];
+  dealerReturns: AdminData["dealerReturns"];
+  dealerReturnItems: AdminData["dealerReturnItems"];
   issues: { id: string; issued_at: string }[];
-  issueItems: { id: string; issue_id: string; product_id: string; quantity: number; imei_unit_id: string | null }[];
+  issueItems: {
+    id: string;
+    issue_id: string;
+    product_id: string;
+    quantity: number;
+    imei_unit_id: string | null;
+  }[];
   imeiUnits: { id: string; product_id: string; imei: string; status: string }[];
 }
 
 /** All signed-in data for one salesman, used by dashboard and settlement. */
 export async function fetchSalesmanData(userId: string): Promise<SalesmanData> {
   const d = await fetchAccounting();
-  const sales = d.sales.filter(s=>s.salesman_id===userId);
-  const issues = d.stockIssues.filter(s=>s.salesman_id===userId);
-  const saleIds = new Set(sales.map(s=>s.id));
-  const issueIds = new Set(issues.map(s=>s.id));
-  return { ...d, sales, issues, saleItems: d.saleItems.filter(i=>saleIds.has(i.sale_id)),
-    issueItems: d.issueItems.filter(i=>issueIds.has(i.issue_id)),
-    payments: d.payments.filter(p=>p.salesman_id===userId),
-    deposits: d.deposits.filter(p=>p.salesman_id===userId),
-    returns: d.returns.filter(p=>p.salesman_id===userId),
-    imeiUnits: d.imeiUnits.filter(u=>u.current_salesman===userId) };
+  const sales = d.sales.filter((s) => s.salesman_id === userId);
+  const issues = d.stockIssues.filter((s) => s.salesman_id === userId);
+  const saleIds = new Set(sales.map((s) => s.id));
+  const issueIds = new Set(issues.map((s) => s.id));
+  const dealerReturns = d.dealerReturns.filter((r) => r.salesman_id === userId);
+  const dealerReturnIds = new Set(dealerReturns.map((r) => r.id));
+  return {
+    ...d,
+    sales,
+    issues,
+    saleItems: d.saleItems.filter((i) => saleIds.has(i.sale_id)),
+    issueItems: d.issueItems.filter((i) => issueIds.has(i.issue_id)),
+    payments: d.payments.filter((p) => p.salesman_id === userId),
+    deposits: d.deposits.filter((p) => p.salesman_id === userId),
+    returns: d.returns.filter((p) => p.salesman_id === userId),
+    imeiUnits: d.imeiUnits.filter((u) => u.current_salesman === userId),
+    dealerReturns,
+    dealerReturnItems: d.dealerReturnItems.filter((item) =>
+      dealerReturnIds.has(item.dealer_return_id),
+    ),
+  };
 }
 
 export interface SalesmanSummary {
@@ -98,11 +178,12 @@ export function summarizeSalesman(data: SalesmanData): SalesmanSummary {
     sumBy(data.sales, (s) => toNumber(s.paid_amount)) +
     sumBy(data.payments, (p) => toNumber(p.amount));
   const deposited = sumBy(data.deposits, (d) => toNumber(d.amount));
-  const dues = dealerDues(data.sales, data.payments);
+  const refunds = sumBy(data.dealerReturns, (r) => toNumber(r.refund_amount));
+  const dues = dealerDues(data.sales, data.payments, data.dealerReturns);
   return {
     cashCollected,
     deposited,
-    cashOnHand: cashCollected - deposited,
+    cashOnHand: cashCollected - deposited - refunds,
     dues,
   };
 }

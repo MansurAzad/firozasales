@@ -11,6 +11,8 @@ import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { findImei } from "@/lib/offline";
 import { formatBDT, saleDue, toNumber } from "@/lib/money";
+import { displayBusinessDate } from "@/lib/business-time";
+import { ListPagination } from "@/components/ListPagination";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   head: () => ({
@@ -48,7 +50,8 @@ function SalesPage() {
 }
 
 function AdminSales() {
-  const { t } = useLang();
+  const { lang, t } = useLang();
+  const [historyPage, setHistoryPage] = useState(0);
   const data = useQuery({
     queryKey: ["admin-sales"],
     queryFn: async () => {
@@ -58,6 +61,8 @@ function AdminSales() {
 
   if (data.error) throw data.error;
   const d = data.data;
+  const orderedSales = [...(d?.sales ?? [])].sort((a, b) => b.sold_at.localeCompare(a.sold_at));
+  const pageSize = 20;
   return (
     <AppShell title={t("all_sales")}>
       <h1 className="page-title mb-4">{t("all_sales")}</h1>
@@ -65,7 +70,7 @@ function AdminSales() {
         {!d || d.sales.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
-          d.sales.map((s) => (
+          orderedSales.slice(historyPage * pageSize, historyPage * pageSize + pageSize).map((s) => (
             <div key={s.id} className="row">
               <div>
                 <div className="font-medium text-foreground">
@@ -73,17 +78,27 @@ function AdminSales() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {d.profiles.find((p) => p.id === s.salesman_id)?.full_name ?? "—"} ·{" "}
-                  {new Date(s.sold_at).toLocaleString()}
+                  {displayBusinessDate(s.sold_at)}
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-semibold">{formatBDT(toNumber(s.total_amount))}</div>
                 <div className="text-xs text-warning-foreground">
-                  {t("due")}: {formatBDT(saleDue(toNumber(s.total_amount), toNumber(s.paid_amount)))}
+                  {t("due")}:{" "}
+                  {formatBDT(saleDue(toNumber(s.total_amount), toNumber(s.paid_amount)))}
                 </div>
               </div>
             </div>
           ))
+        )}
+        {d && (
+          <ListPagination
+            page={historyPage}
+            pageSize={pageSize}
+            total={orderedSales.length}
+            onPageChange={setHistoryPage}
+            lang={lang}
+          />
         )}
       </div>
     </AppShell>
@@ -91,7 +106,7 @@ function AdminSales() {
 }
 
 function SalesmanSales({ userId }: { userId: string }) {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const queryClient = useQueryClient();
   const post = usePosting();
   const [retailerId, setRetailerId] = useState("");
@@ -99,18 +114,26 @@ function SalesmanSales({ userId }: { userId: string }) {
   const [pickProduct, setPickProduct] = useState("");
   const [cash, setCash] = useState("");
   const [note, setNote] = useState("");
+  const [historyPage, setHistoryPage] = useState(0);
 
   const data = useQuery({
     queryKey: ["sales-page", userId],
     queryFn: async () => {
-      const d=await fetchAccounting();
-      return { retailers:d.retailers.filter(r=>r.is_active), products:d.products.filter(p=>p.is_active), mySales:d.sales.filter(s=>s.salesman_id===userId), retailerNames:d.retailers, saleItems:d.saleItems };
-
+      const d = await fetchAccounting();
+      return {
+        retailers: d.retailers.filter((r) => r.is_active),
+        products: d.products.filter((p) => p.is_active),
+        mySales: d.sales.filter((s) => s.salesman_id === userId),
+        retailerNames: d.retailers,
+        saleItems: d.saleItems,
+      };
     },
   });
 
   if (data.error) throw data.error;
   const d = data.data;
+  const orderedSales = [...(d?.mySales ?? [])].sort((a, b) => b.sold_at.localeCompare(a.sold_at));
+  const pageSize = 20;
 
   const total = items.reduce(
     (a, i) => a + (i.product.category === "button_phone" ? i.qty : i.units.length) * i.unitPrice,
@@ -121,8 +144,18 @@ function SalesmanSales({ userId }: { userId: string }) {
   const submit = useMutation({
     mutationFn: async () => {
       if (!retailerId || items.length === 0) throw new Error(t("noData"));
-      if (!validCash(paid,total,true)) throw new Error(t('invalid_cash'));
-      return post('sale', { retailer_id:retailerId, paid_amount:paid, note, items:items.map(i=>({ product_id:i.product.id, quantity:i.qty, unit_price:i.unitPrice, unit_ids:i.units.map(u=>u.id) })) });
+      if (!validCash(paid, total, true)) throw new Error(t("invalid_cash"));
+      return post("sale", {
+        retailer_id: retailerId,
+        paid_amount: paid,
+        note,
+        items: items.map((i) => ({
+          product_id: i.product.id,
+          quantity: i.qty,
+          unit_price: i.unitPrice,
+          unit_ids: i.units.map((u) => u.id),
+        })),
+      });
     },
     onSuccess: () => {
       toast.success(t("sale_saved"));
@@ -130,6 +163,7 @@ function SalesmanSales({ userId }: { userId: string }) {
       setRetailerId("");
       setCash("");
       setNote("");
+      setHistoryPage(0);
       queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -163,7 +197,9 @@ function SalesmanSales({ userId }: { userId: string }) {
 
       <div className="card mb-4">
         <div className="field">
-          <label className="label" htmlFor="s-retailer">{t("select_retailer")}</label>
+          <label className="label" htmlFor="s-retailer">
+            {t("select_retailer")}
+          </label>
           <select
             id="s-retailer"
             className="input"
@@ -172,16 +208,24 @@ function SalesmanSales({ userId }: { userId: string }) {
           >
             <option value="">—</option>
             {(d?.retailers ?? []).map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="field flex gap-2">
-          <select className="input" value={pickProduct} onChange={(e) => setPickProduct(e.target.value)}>
+          <select
+            className="input"
+            value={pickProduct}
+            onChange={(e) => setPickProduct(e.target.value)}
+          >
             <option value="">{t("add_item_sale")}…</option>
             {(d?.products ?? []).map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
           </select>
           <Button
@@ -201,11 +245,15 @@ function SalesmanSales({ userId }: { userId: string }) {
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-              <div className="min-w-0 break-words font-semibold text-foreground">{item.product.name}</div>
+              <div className="min-w-0 break-words font-semibold text-foreground">
+                {item.product.name}
+              </div>
               <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"
-                onClick={() => setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))}
+                onClick={() =>
+                  setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))
+                }
               >
                 {t("delete")}
               </Button>
@@ -256,24 +304,25 @@ function SalesmanSales({ userId }: { userId: string }) {
                   hint={t("scan_imei_own")}
                   check={(code) => checkImei(code, item)}
                   onAccepted={(code) =>
-                    findImei(code)
-                      .then(({ data: unit }) => {
-                        if (unit) {
-                          setItems((prev) =>
-                            prev.map((i) =>
-                              i.product.id === item.product.id
-                                ? { ...i, units: [...i.units, { id: unit.id, imei: code }] }
-                                : i,
-                            ),
-                          );
-                        }
-                      })
+                    findImei(code).then(({ data: unit }) => {
+                      if (unit) {
+                        setItems((prev) =>
+                          prev.map((i) =>
+                            i.product.id === item.product.id
+                              ? { ...i, units: [...i.units, { id: unit.id, imei: code }] }
+                              : i,
+                          ),
+                        );
+                      }
+                    })
                   }
                 />
                 {item.units.length > 0 ? (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {item.units.map((u) => (
-                      <span key={u.id} className="badge-ok">{u.imei}</span>
+                      <span key={u.id} className="badge-ok">
+                        {u.imei}
+                      </span>
                     ))}
                   </div>
                 ) : null}
@@ -287,7 +336,9 @@ function SalesmanSales({ userId }: { userId: string }) {
           <span className="text-lg font-bold">{formatBDT(total)}</span>
         </div>
         <div className="field">
-          <label className="label" htmlFor="s-cash">{t("cash_received")}</label>
+          <label className="label" htmlFor="s-cash">
+            {t("cash_received")}
+          </label>
           <input
             max={total}
             step="0.01"
@@ -307,14 +358,27 @@ function SalesmanSales({ userId }: { userId: string }) {
           </span>
         </div>
         <div className="field">
-          <label className="label" htmlFor="s-note">{t("note")} {t("optional")}</label>
-          <input id="s-note" className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+          <label className="label" htmlFor="s-note">
+            {t("note")} {t("optional")}
+          </label>
+          <input
+            id="s-note"
+            className="input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
         </div>
 
         <Button
           type="button"
           className="btn-primary w-full"
-          disabled={!retailerId || items.length === 0 || !validCash(paid,total,true) || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
+          disabled={
+            !retailerId ||
+            items.length === 0 ||
+            !validCash(paid, total, true) ||
+            items.some((i) => i.product.category === "smartphone" && i.units.length === 0) ||
+            submit.isPending
+          }
           onClick={() => submit.mutate()}
         >
           {t("save_sale")}
@@ -326,24 +390,34 @@ function SalesmanSales({ userId }: { userId: string }) {
         {!d || d.mySales.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
-          d.mySales.map((s) => (
+          orderedSales.slice(historyPage * pageSize, historyPage * pageSize + pageSize).map((s) => (
             <div key={s.id} className="row">
               <div>
                 <div className="font-medium text-foreground">
                   {d.retailerNames.find((r) => r.id === s.retailer_id)?.name ?? "—"}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {new Date(s.sold_at).toLocaleString()}
+                  {displayBusinessDate(s.sold_at)}
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-semibold">{formatBDT(toNumber(s.total_amount))}</div>
                 <div className="text-xs text-warning-foreground">
-                  {t("due")}: {formatBDT(saleDue(toNumber(s.total_amount), toNumber(s.paid_amount)))}
+                  {t("due")}:{" "}
+                  {formatBDT(saleDue(toNumber(s.total_amount), toNumber(s.paid_amount)))}
                 </div>
               </div>
             </div>
           ))
+        )}
+        {d && (
+          <ListPagination
+            page={historyPage}
+            pageSize={pageSize}
+            total={orderedSales.length}
+            onPageChange={setHistoryPage}
+            lang={lang}
+          />
         )}
       </section>
     </AppShell>

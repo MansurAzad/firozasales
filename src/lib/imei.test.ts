@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  checkTransition,
-  isPlausibleImei,
-  normalizeImei,
-} from "./imei";
+import { checkTransition, isPlausibleImei, normalizeImei } from "./imei";
 
 describe("IMEI normalization", () => {
   it("strips non-digits from scanned barcode text", () => {

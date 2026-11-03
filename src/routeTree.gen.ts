@@ -22,6 +22,8 @@ import { Route as AuthenticatedSalesmenRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSettlementRouteImport } from './routes/_authenticated/settlement'
 import { Route as AuthenticatedStockIssueRouteImport } from './routes/_authenticated/stock-issue'
+import { Route as AuthenticatedStockReceiptRouteImport } from './routes/_authenticated/stock-receipt'
+import { Route as AuthenticatedTransactionReversalsRouteImport } from './routes/_authenticated/transaction-reversals'
 import { Route as AuthenticatedRetailersIndexRouteImport } from './routes/_authenticated/retailers.index'
 import { Route as AuthenticatedRetailersIdRouteImport } from './routes/_authenticated/retailers.$id'
 
@@ -90,6 +92,18 @@ const AuthenticatedStockIssueRoute = AuthenticatedStockIssueRouteImport.update({
   path: '/stock-issue',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStockReceiptRoute =
+  AuthenticatedStockReceiptRouteImport.update({
+    id: '/stock-receipt',
+    path: '/stock-receipt',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTransactionReversalsRoute =
+  AuthenticatedTransactionReversalsRouteImport.update({
+    id: '/transaction-reversals',
+    path: '/transaction-reversals',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRetailersIndexRoute =
   AuthenticatedRetailersIndexRouteImport.update({
     id: '/',
@@ -116,6 +130,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/settlement': typeof AuthenticatedSettlementRoute
   '/stock-issue': typeof AuthenticatedStockIssueRoute
+  '/stock-receipt': typeof AuthenticatedStockReceiptRoute
+  '/transaction-reversals': typeof AuthenticatedTransactionReversalsRoute
   '/retailers/$id': typeof AuthenticatedRetailersIdRoute
   '/retailers/': typeof AuthenticatedRetailersIndexRoute
 }
@@ -131,6 +147,8 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/settlement': typeof AuthenticatedSettlementRoute
   '/stock-issue': typeof AuthenticatedStockIssueRoute
+  '/stock-receipt': typeof AuthenticatedStockReceiptRoute
+  '/transaction-reversals': typeof AuthenticatedTransactionReversalsRoute
   '/retailers/$id': typeof AuthenticatedRetailersIdRoute
   '/retailers': typeof AuthenticatedRetailersIndexRoute
 }
@@ -149,6 +167,8 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/settlement': typeof AuthenticatedSettlementRoute
   '/_authenticated/stock-issue': typeof AuthenticatedStockIssueRoute
+  '/_authenticated/stock-receipt': typeof AuthenticatedStockReceiptRoute
+  '/_authenticated/transaction-reversals': typeof AuthenticatedTransactionReversalsRoute
   '/_authenticated/retailers/$id': typeof AuthenticatedRetailersIdRoute
   '/_authenticated/retailers/': typeof AuthenticatedRetailersIndexRoute
 }
@@ -167,6 +187,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/settlement'
     | '/stock-issue'
+    | '/stock-receipt'
+    | '/transaction-reversals'
     | '/retailers/$id'
     | '/retailers/'
   fileRoutesByTo: FileRoutesByTo
@@ -182,6 +204,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/settlement'
     | '/stock-issue'
+    | '/stock-receipt'
+    | '/transaction-reversals'
     | '/retailers/$id'
     | '/retailers'
   id:
@@ -199,6 +223,8 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/settlement'
     | '/_authenticated/stock-issue'
+    | '/_authenticated/stock-receipt'
+    | '/_authenticated/transaction-reversals'
     | '/_authenticated/retailers/$id'
     | '/_authenticated/retailers/'
   fileRoutesById: FileRoutesById
@@ -302,6 +328,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStockIssueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/stock-receipt': {
+      id: '/_authenticated/stock-receipt'
+      path: '/stock-receipt'
+      fullPath: '/stock-receipt'
+      preLoaderRoute: typeof AuthenticatedStockReceiptRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/transaction-reversals': {
+      id: '/_authenticated/transaction-reversals'
+      path: '/transaction-reversals'
+      fullPath: '/transaction-reversals'
+      preLoaderRoute: typeof AuthenticatedTransactionReversalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/retailers/': {
       id: '/_authenticated/retailers/'
       path: '/'
@@ -346,6 +386,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSettlementRoute: typeof AuthenticatedSettlementRoute
   AuthenticatedStockIssueRoute: typeof AuthenticatedStockIssueRoute
+  AuthenticatedStockReceiptRoute: typeof AuthenticatedStockReceiptRoute
+  AuthenticatedTransactionReversalsRoute: typeof AuthenticatedTransactionReversalsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -359,6 +401,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSettlementRoute: AuthenticatedSettlementRoute,
   AuthenticatedStockIssueRoute: AuthenticatedStockIssueRoute,
+  AuthenticatedStockReceiptRoute: AuthenticatedStockReceiptRoute,
+  AuthenticatedTransactionReversalsRoute:
+    AuthenticatedTransactionReversalsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

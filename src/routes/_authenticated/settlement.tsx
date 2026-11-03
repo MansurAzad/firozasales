@@ -11,6 +11,8 @@ import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { findImei } from "@/lib/offline";
 import { formatBDT, toNumber } from "@/lib/money";
+import { displayBusinessDate } from "@/lib/business-time";
+import { ListPagination } from "@/components/ListPagination";
 import {
   fetchAdminData,
   fetchSalesmanData,
@@ -44,11 +46,7 @@ function SettlementPage() {
       </AppShell>
     );
   }
-  return role.data.isAdmin ? (
-    <AdminSettlement />
-  ) : (
-    <SalesmanSettlement userId={role.data.userId} />
-  );
+  return role.data.isAdmin ? <AdminSettlement /> : <SalesmanSettlement userId={role.data.userId} />;
 }
 
 interface ReturnDraft {
@@ -60,7 +58,7 @@ interface ReturnDraft {
 }
 
 function SalesmanSettlement({ userId }: { userId: string }) {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const queryClient = useQueryClient();
   const post = usePosting();
   const [returns, setReturns] = useState<ReturnDraft[]>([]);
@@ -68,6 +66,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
   const [depositAmount, setDepositAmount] = useState("");
   const [depositNote, setDepositNote] = useState("");
   const [scanProductId, setScanProductId] = useState("");
+  const [historyPage, setHistoryPage] = useState(0);
 
   const data = useQuery({
     queryKey: ["settlement-page", userId],
@@ -78,14 +77,26 @@ function SalesmanSettlement({ userId }: { userId: string }) {
     queryKey: ["settlement-history", userId],
     queryFn: async () => {
       const d = await fetchAccounting();
-      return { settlements: d.settlements.filter(s=>s.salesman_id===userId), deposits:d.deposits.filter(s=>s.salesman_id===userId), returns:d.returns.filter(s=>s.salesman_id===userId) };
+      return {
+        settlements: d.settlements.filter((s) => s.salesman_id === userId),
+        deposits: d.deposits.filter((s) => s.salesman_id === userId),
+        returns: d.returns.filter((s) => s.salesman_id === userId),
+      };
     },
   });
 
   const submit = useMutation({
     mutationFn: async () => {
       if (returns.length === 0 && deposits.length === 0) throw new Error(t("noData"));
-      return post('settlement', { returns:returns.map(r=>({ product_id:r.product_id, quantity:r.qty, is_damaged:r.damaged, unit_ids:r.units.map(u=>u.id) })), deposits });
+      return post("settlement", {
+        returns: returns.map((r) => ({
+          product_id: r.product_id,
+          quantity: r.qty,
+          is_damaged: r.damaged,
+          unit_ids: r.units.map((u) => u.id),
+        })),
+        deposits,
+      });
     },
     onSuccess: () => {
       toast.success(t("settlement_saved"));
@@ -113,7 +124,11 @@ function SalesmanSettlement({ userId }: { userId: string }) {
   const pendingProducts = d.products
     .map((p) => {
       const row = stock.get(p.id);
-      const remaining = (row ? row.issued - row.sold - row.returned : 0) - returns.filter(r=>r.product_id===p.id).reduce((n,r)=>n+(r.units.length || r.qty),0);
+      const remaining =
+        (row ? row.issued - row.sold - row.returned : 0) -
+        returns
+          .filter((r) => r.product_id === p.id)
+          .reduce((n, r) => n + (r.units.length || r.qty), 0);
       return { ...p, remaining };
     })
     .filter((p) => p.remaining > 0);
@@ -136,6 +151,10 @@ function SalesmanSettlement({ userId }: { userId: string }) {
 
   if (history.error) throw history.error;
   const h = history.data;
+  const orderedSettlements = [...(h?.settlements ?? [])].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at),
+  );
+  const historyPageSize = 20;
 
   return (
     <AppShell title={t("settlement_title")}>
@@ -160,7 +179,9 @@ function SalesmanSettlement({ userId }: { userId: string }) {
         <h2 className="card-title mb-3">{t("returns_entry")}</h2>
 
         <div className="field">
-          <label className="label" htmlFor="st-product">{t("add_item")}</label>
+          <label className="label" htmlFor="st-product">
+            {t("add_item")}
+          </label>
           <select
             id="st-product"
             className="input"
@@ -182,30 +203,30 @@ function SalesmanSettlement({ userId }: { userId: string }) {
               hint={t("scan_imei_own")}
               check={checkReturnImei}
               onAccepted={(code) =>
-                findImei(code)
-                  .then(({ data: unit }) => {
-                    if (!unit) return;
-                    setReturns((prev) => {
-                      const existing = prev.find((r) => r.product_id === scanProduct.id);
-                      if (existing) {
-                        return prev.map((r) =>
-                          r.product_id === scanProduct.id
-                            ? { ...r, units: [...r.units, { id: unit.id, imei: code }] }
-                            : r,
-                        );
-                      }
-                      return [
-                        ...prev,
-                        {
-                          product_id: scanProduct.id,
-                          name: scanProduct.name,
-                          qty: 0,
-                          damaged: false,
-                          units: [{ id: unit.id, imei: code }],
-                        },
-                      ];
-                    });
-                  })}
+                findImei(code).then(({ data: unit }) => {
+                  if (!unit) return;
+                  setReturns((prev) => {
+                    const existing = prev.find((r) => r.product_id === scanProduct.id);
+                    if (existing) {
+                      return prev.map((r) =>
+                        r.product_id === scanProduct.id
+                          ? { ...r, units: [...r.units, { id: unit.id, imei: code }] }
+                          : r,
+                      );
+                    }
+                    return [
+                      ...prev,
+                      {
+                        product_id: scanProduct.id,
+                        name: scanProduct.name,
+                        qty: 0,
+                        damaged: false,
+                        units: [{ id: unit.id, imei: code }],
+                      },
+                    ];
+                  });
+                })
+              }
             />
           ) : (
             <AddQtyReturn
@@ -229,9 +250,7 @@ function SalesmanSettlement({ userId }: { userId: string }) {
               <div className="min-w-0 break-words">
                 <div className="font-semibold text-foreground">{r.name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {r.units.length > 0
-                    ? `${r.units.length} ${t("qty")}`
-                    : `${r.qty} ${t("qty")}`}
+                  {r.units.length > 0 ? `${r.units.length} ${t("qty")}` : `${r.qty} ${t("qty")}`}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -259,7 +278,9 @@ function SalesmanSettlement({ userId }: { userId: string }) {
             {r.units.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1">
                 {r.units.map((u) => (
-                  <span key={u.id} className="badge-mut">{u.imei}</span>
+                  <span key={u.id} className="badge-mut">
+                    {u.imei}
+                  </span>
                 ))}
               </div>
             ) : null}
@@ -272,32 +293,45 @@ function SalesmanSettlement({ userId }: { userId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             const n = Number(depositAmount);
-            if (!validCash(n,summary.cashOnHand-deposits.reduce((a,d)=>a+d.amount,0))) { toast.error(t("invalid_cash")); return; }
+            if (!validCash(n, summary.cashOnHand - deposits.reduce((a, d) => a + d.amount, 0))) {
+              toast.error(t("invalid_cash"));
+              return;
+            }
             setDeposits((prev) => [...prev, { amount: n, note: depositNote }]);
             setDepositAmount("");
             setDepositNote("");
           }}
         >
-          <div><label htmlFor="deposit-amount" className="label">{t("payment_amount")}</label><input
-            id="deposit-amount"
-            inputMode="decimal"
-            type="number"
-            min="0.01"
-            step="0.01"
-            max={Math.max(0, summary.cashOnHand - deposits.reduce((n, dep) => n + dep.amount, 0))}
-            className="input"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            placeholder={formatBDT(Math.max(0, summary.cashOnHand))}
-            required
-          /></div>
-          <div><label htmlFor="deposit-note" className="label">{t("note")}</label><input
-            id="deposit-note"
-            className="input"
-            value={depositNote}
-            onChange={(e) => setDepositNote(e.target.value)}
-            placeholder={t("note")}
-          /></div>
+          <div>
+            <label htmlFor="deposit-amount" className="label">
+              {t("payment_amount")}
+            </label>
+            <input
+              id="deposit-amount"
+              inputMode="decimal"
+              type="number"
+              min="0.01"
+              step="0.01"
+              max={Math.max(0, summary.cashOnHand - deposits.reduce((n, dep) => n + dep.amount, 0))}
+              className="input"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              placeholder={formatBDT(Math.max(0, summary.cashOnHand))}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="deposit-note" className="label">
+              {t("note")}
+            </label>
+            <input
+              id="deposit-note"
+              className="input"
+              value={depositNote}
+              onChange={(e) => setDepositNote(e.target.value)}
+              placeholder={t("note")}
+            />
+          </div>
           <Button type="submit" className="btn-secondary btn-sm">
             {t("add")}
           </Button>
@@ -330,26 +364,37 @@ function SalesmanSettlement({ userId }: { userId: string }) {
         {!h || h.settlements.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
-          h.settlements.map((s) => {
-            const dep = h.deposits
-              .filter((x) => x.settlement_id === s.id)
-              .reduce((a, x) => a + toNumber(x.amount), 0);
-            const ret = h.returns
-              .filter((x) => x.settlement_id === s.id)
-              .reduce((a, x) => a + x.quantity, 0);
-            return (
-              <div key={s.id} className="row">
-                <div>
-                  <div className="font-medium text-foreground">
-                    {t("returns_entry")}: {ret} · {t("deposit_entry")}: {formatBDT(dep)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(s.created_at).toLocaleString()}
+          orderedSettlements
+            .slice(historyPage * historyPageSize, historyPage * historyPageSize + historyPageSize)
+            .map((s) => {
+              const dep = h.deposits
+                .filter((x) => x.settlement_id === s.id)
+                .reduce((a, x) => a + toNumber(x.amount), 0);
+              const ret = h.returns
+                .filter((x) => x.settlement_id === s.id)
+                .reduce((a, x) => a + x.quantity, 0);
+              return (
+                <div key={s.id} className="row">
+                  <div>
+                    <div className="font-medium text-foreground">
+                      {t("returns_entry")}: {ret} · {t("deposit_entry")}: {formatBDT(dep)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {displayBusinessDate(s.created_at)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })
+        )}
+        {h && (
+          <ListPagination
+            page={historyPage}
+            pageSize={historyPageSize}
+            total={orderedSettlements.length}
+            onPageChange={setHistoryPage}
+            lang={lang}
+          />
         )}
       </section>
     </AppShell>
@@ -395,7 +440,9 @@ function AddQtyReturn({
         <input type="checkbox" checked={damaged} onChange={(e) => setDamaged(e.target.checked)} />
         {t("damaged")}
       </label>
-      <Button type="submit" className="btn-secondary btn-sm">{t("add")}</Button>
+      <Button type="submit" className="btn-secondary btn-sm">
+        {t("add")}
+      </Button>
     </form>
   );
 }

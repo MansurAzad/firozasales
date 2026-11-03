@@ -10,6 +10,9 @@ import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { findImei } from "@/lib/offline";
+import { companyStock } from "@/lib/inventory";
+import { displayBusinessDate } from "@/lib/business-time";
+import { ListPagination } from "@/components/ListPagination";
 
 export const Route = createFileRoute("/_authenticated/stock-issue")({
   head: () => ({
@@ -32,17 +35,21 @@ interface DraftItem {
 }
 
 function StockIssuePage() {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const role = useMyRole();
   const queryClient = useQueryClient();
 
   const data = useQuery({
     queryKey: ["stock-issue-page"],
     queryFn: async () => {
-      const d=await fetchAccounting();
-      const ids=new Set(d.roles.filter(r=>r.role==='salesman').map(r=>r.user_id));
-      return { salesmen:d.profiles.filter(p=>ids.has(p.id)), products:d.products.filter(p=>p.is_active), issues:d.stockIssues, issueItems:d.issueItems };
-
+      const d = await fetchAccounting();
+      const ids = new Set(d.roles.filter((r) => r.role === "salesman").map((r) => r.user_id));
+      return {
+        ...d,
+        salesmen: d.profiles.filter((p) => ids.has(p.id)),
+        products: d.products.filter((p) => p.is_active),
+        issues: d.stockIssues,
+      };
     },
   });
 
@@ -50,18 +57,37 @@ function StockIssuePage() {
   const [salesmanId, setSalesmanId] = useState("");
   const [items, setItems] = useState<DraftItem[]>([]);
   const [pickProduct, setPickProduct] = useState("");
+  const [issuePage, setIssuePage] = useState(0);
 
   const submit = useMutation({
     mutationFn: async () => {
       if (!role.data || !salesmanId || items.length === 0) {
         throw new Error(t("noData"));
       }
-      return post('issue', { salesman_id: salesmanId, items: items.map(i=>({ product_id:i.product.id, quantity:i.qty, unit_ids:i.units.map(u=>u.id) })) });
+      const accounting = data.data;
+      if (!accounting) throw new Error(t("loading"));
+      for (const item of items) {
+        if (
+          item.product.category === "button_phone" &&
+          item.qty > companyStock(accounting, item.product.id)
+        ) {
+          throw new Error(`${item.product.name}: ${t("insufficient_company_stock")}`);
+        }
+      }
+      return post("issue", {
+        salesman_id: salesmanId,
+        items: items.map((i) => ({
+          product_id: i.product.id,
+          quantity: i.qty,
+          unit_ids: i.units.map((u) => u.id),
+        })),
+      });
     },
     onSuccess: () => {
       toast.success(t("issue_created"));
       setItems([]);
       setSalesmanId("");
+      setIssuePage(0);
       queryClient.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -88,6 +114,8 @@ function StockIssuePage() {
   if (!d) return null;
 
   const salesmen = d.salesmen.filter((s) => s.is_active);
+  const orderedIssues = [...d.issues].sort((a, b) => b.issued_at.localeCompare(a.issued_at));
+  const issuePageSize = 20;
 
   function addItem(product: { id: string; name: string; category: string; price: number }) {
     if (items.some((i) => i.product.id === product.id)) return;
@@ -115,7 +143,9 @@ function StockIssuePage() {
 
       <div className="card mb-4">
         <div className="field">
-          <label className="label" htmlFor="si-salesman">{t("select_salesman")}</label>
+          <label className="label" htmlFor="si-salesman">
+            {t("select_salesman")}
+          </label>
           <select
             id="si-salesman"
             className="input"
@@ -141,6 +171,9 @@ function StockIssuePage() {
             {d.products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
+                {p.category === "button_phone"
+                  ? ` · ${t("in_stock")}: ${companyStock(d, p.id)}`
+                  : ""}
               </option>
             ))}
           </select>
@@ -161,11 +194,15 @@ function StockIssuePage() {
         {items.map((item) => (
           <div key={item.product.id} className="mb-3 rounded-xl border border-border p-3">
             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-              <div className="min-w-0 break-words font-semibold text-foreground">{item.product.name}</div>
+              <div className="min-w-0 break-words font-semibold text-foreground">
+                {item.product.name}
+              </div>
               <Button
                 type="button"
                 className="btn-ghost btn-sm text-destructive"
-                onClick={() => setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))}
+                onClick={() =>
+                  setItems((prev) => prev.filter((i) => i.product.id !== item.product.id))
+                }
               >
                 {t("delete")}
               </Button>
@@ -195,24 +232,25 @@ function StockIssuePage() {
                   hint={t("scan_imei_stock")}
                   check={(code) => checkImei(code, item)}
                   onAccepted={(code) =>
-                    findImei(code)
-                      .then(({ data: unit }) => {
-                        if (unit) {
-                          setItems((prev) =>
-                            prev.map((i) =>
-                              i.product.id === item.product.id
-                                ? { ...i, units: [...i.units, { id: unit.id, imei: code }] }
-                                : i,
-                            ),
-                          );
-                        }
-                      })
+                    findImei(code).then(({ data: unit }) => {
+                      if (unit) {
+                        setItems((prev) =>
+                          prev.map((i) =>
+                            i.product.id === item.product.id
+                              ? { ...i, units: [...i.units, { id: unit.id, imei: code }] }
+                              : i,
+                          ),
+                        );
+                      }
+                    })
                   }
                 />
                 {item.units.length > 0 ? (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {item.units.map((u) => (
-                      <span key={u.id} className="badge-ok">{u.imei}</span>
+                      <span key={u.id} className="badge-ok">
+                        {u.imei}
+                      </span>
                     ))}
                   </div>
                 ) : null}
@@ -224,7 +262,12 @@ function StockIssuePage() {
         <Button
           type="button"
           className="btn-primary w-full"
-          disabled={!salesmanId || items.length === 0 || items.some(i=>i.product.category === "smartphone" && i.units.length===0) || submit.isPending}
+          disabled={
+            !salesmanId ||
+            items.length === 0 ||
+            items.some((i) => i.product.category === "smartphone" && i.units.length === 0) ||
+            submit.isPending
+          }
           onClick={() => submit.mutate()}
         >
           {t("issue_stock")}
@@ -236,24 +279,35 @@ function StockIssuePage() {
         {d.issues.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noData")}</p>
         ) : (
-          d.issues.map((issue) => {
-            const qty = d.issueItems
-              .filter((i) => i.issue_id === issue.id)
-              .reduce((a, i) => a + i.quantity, 0);
-            const name = d.salesmen.find((s) => s.id === issue.salesman_id)?.full_name ?? "—";
-            return (
-              <div key={issue.id} className="row">
-                <div>
-                  <div className="font-medium text-foreground">{name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(issue.issued_at).toLocaleString()}
+          orderedIssues
+            .slice(issuePage * issuePageSize, issuePage * issuePageSize + issuePageSize)
+            .map((issue) => {
+              const qty = d.issueItems
+                .filter((i) => i.issue_id === issue.id)
+                .reduce((a, i) => a + i.quantity, 0);
+              const name = d.salesmen.find((s) => s.id === issue.salesman_id)?.full_name ?? "—";
+              return (
+                <div key={issue.id} className="row">
+                  <div>
+                    <div className="font-medium text-foreground">{name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {displayBusinessDate(issue.issued_at, lang === "bn" ? "bn-BD" : "en-GB")}
+                    </div>
                   </div>
+                  <span className="badge-mut">
+                    {qty} {t("qty")}
+                  </span>
                 </div>
-                <span className="badge-mut">{qty} {t("qty")}</span>
-              </div>
-            );
-          })
+              );
+            })
         )}
+        <ListPagination
+          page={issuePage}
+          pageSize={issuePageSize}
+          total={orderedIssues.length}
+          onPageChange={setIssuePage}
+          lang={lang}
+        />
       </section>
     </AppShell>
   );

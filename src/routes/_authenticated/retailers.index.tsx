@@ -11,6 +11,7 @@ import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { catalogWrite } from "@/lib/offline";
 import { formatBDT, toNumber } from "@/lib/money";
+import { ListPagination } from "@/components/ListPagination";
 
 export const Route = createFileRoute("/_authenticated/retailers/")({
   head: () => ({
@@ -51,9 +52,7 @@ function RetailersPage() {
   return (
     <AppShell title={t("retailers_title")}>
       <h1 className="page-title mb-4">{t("retailers_title")}</h1>
-      {isAdmin ? (
-        <AddRetailer onDone={() => queryClient.invalidateQueries()} />
-      ) : null}
+      {isAdmin ? <AddRetailer onDone={() => queryClient.invalidateQueries()} /> : null}
       <RetailerList
         data={data.data}
         isAdmin={isAdmin}
@@ -73,7 +72,7 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      await catalogWrite('retailers', 'insert', [{ name, phone, address }]);
+      await catalogWrite("retailers", "insert", [{ name, phone, address }]);
     },
     onSuccess: () => {
       toast.success(t("retailer_saved"));
@@ -103,22 +102,48 @@ function AddRetailer({ onDone }: { onDone: () => void }) {
         }}
       >
         <div className="field">
-          <label className="label" htmlFor="r-name">{t("name")}</label>
-          <input id="r-name" className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+          <label className="label" htmlFor="r-name">
+            {t("name")}
+          </label>
+          <input
+            id="r-name"
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="field">
-            <label className="label" htmlFor="r-phone">{t("phone")}</label>
-            <input id="r-phone" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <label className="label" htmlFor="r-phone">
+              {t("phone")}
+            </label>
+            <input
+              id="r-phone"
+              className="input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
           </div>
           <div className="field">
-            <label className="label" htmlFor="r-address">{t("address")}</label>
-            <input id="r-address" className="input" value={address} onChange={(e) => setAddress(e.target.value)} />
+            <label className="label" htmlFor="r-address">
+              {t("address")}
+            </label>
+            <input
+              id="r-address"
+              className="input"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex gap-2">
-          <Button type="submit" className="btn-primary" disabled={save.isPending}>{t("save")}</Button>
-          <Button type="button" className="btn-outline" onClick={() => setOpen(false)}>{t("cancel")}</Button>
+          <Button type="submit" className="btn-primary" disabled={save.isPending}>
+            {t("save")}
+          </Button>
+          <Button type="button" className="btn-outline" onClick={() => setOpen(false)}>
+            {t("cancel")}
+          </Button>
         </div>
       </form>
     </div>
@@ -134,7 +159,13 @@ function RetailerList({
   data:
     | {
         retailers: RetailerRow[];
-        sales: { id: string; retailer_id: string; salesman_id: string; total_amount: number; paid_amount: number }[];
+        sales: {
+          id: string;
+          retailer_id: string;
+          salesman_id: string;
+          total_amount: number;
+          paid_amount: number;
+        }[];
         payments: { id: string; retailer_id: string; salesman_id: string; amount: number }[];
       }
     | undefined;
@@ -142,12 +173,15 @@ function RetailerList({
   userId: string;
   onChange: () => void;
 }) {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const [editing, setEditing] = useState<RetailerRow | null>(null);
+  const [page, setPage] = useState(0);
 
   const update = useMutation({
     mutationFn: async (row: RetailerRow) => {
-      await catalogWrite('retailers', 'update', [{ id: row.id, name: row.name, phone: row.phone, address: row.address }]);
+      await catalogWrite("retailers", "update", [
+        { id: row.id, name: row.name, phone: row.phone, address: row.address },
+      ]);
     },
     onSuccess: () => {
       setEditing(null);
@@ -158,7 +192,7 @@ function RetailerList({
 
   const toggleActive = useMutation({
     mutationFn: async (row: RetailerRow) => {
-      await catalogWrite('retailers', 'update', [{ id: row.id, is_active: !row.is_active }]);
+      await catalogWrite("retailers", "update", [{ id: row.id, is_active: !row.is_active }]);
     },
     onSuccess: onChange,
     onError: (e: Error) => toast.error(e.message),
@@ -166,7 +200,7 @@ function RetailerList({
 
   const remove = useMutation({
     mutationFn: async (row: RetailerRow) => {
-      await catalogWrite('retailers', 'delete', [{ id: row.id }]);
+      await catalogWrite("retailers", "delete", [{ id: row.id }]);
     },
     onSuccess: onChange,
     onError: (e: Error) => toast.error(e.message),
@@ -176,83 +210,133 @@ function RetailerList({
   if (data.retailers.length === 0) {
     return <p className="text-sm text-muted-foreground">{t("noData")}</p>;
   }
+  const pageSize = 20;
+  const orderedRetailers = [...data.retailers].sort((a, b) => a.name.localeCompare(b.name));
+  const pageCount = Math.max(1, Math.ceil(orderedRetailers.length / pageSize));
+  const currentPage = Math.min(page, pageCount - 1);
 
   return (
     <div className="card">
-      {data.retailers.map((r) => {
-        return (
-          <div key={r.id} className="grid min-w-0 gap-3 border-b border-border py-4 last:border-b-0">
-            {editing?.id === r.id ? (
-              <form
-                className="grid w-full min-w-0 gap-2 sm:grid-cols-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  update.mutate(editing);
-                }}
-              >
-                <input
-                  className="input"
-                  value={editing.name}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                />
-                <input
-                  className="input"
-                  value={editing.phone}
-                  onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
-                />
-                <input
-                  className="input"
-                  value={editing.address}
-                  onChange={(e) => setEditing({ ...editing, address: e.target.value })}
-                />
-                <Button type="submit" className="btn-primary btn-sm">{t("save")}</Button>
-                <Button type="button" className="btn-outline btn-sm" onClick={() => setEditing(null)}>
-                  {t("cancel")}
-                </Button>
-              </form>
-            ) : (
-              <>
-                <Link to="/retailers/$id" params={{ id: r.id }} className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate font-semibold text-foreground">{r.name}</span>
-                    {!r.is_active ? <span className="badge-warn">{t("inactive")}</span> : null}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {r.phone || "—"}
-                    {` · ${t("ledger")}`}
-                  </div>
-                </Link>
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                  <RetailerBalance retailerId={r.id} isAdmin={isAdmin} userId={userId} data={data} />
-                  {isAdmin ? (
-                    <div className="flex shrink-0 items-center">
-                      <Button variant="ghost" size="icon" className="h-11 w-11" type="button" aria-label={t("edit")} title={t("edit")} onClick={() => setEditing(r)}>
-                        <Pencil />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-11 w-11" type="button" aria-label={r.is_active ? t("deactivate") : t("activate")} title={r.is_active ? t("deactivate") : t("activate")} onClick={() => toggleActive.mutate(r)} disabled={toggleActive.isPending}>
-                        <Power />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        aria-label={t("delete")}
-                        title={t("delete")}
-                        className="h-11 w-11 text-destructive"
-                        onClick={() => {
-                          if (window.confirm(t("confirmDelete"))) remove.mutate(r);
-                        }}
-                      >
-                        <Trash2 />
-                      </Button>
+      {orderedRetailers
+        .slice(currentPage * pageSize, currentPage * pageSize + pageSize)
+        .map((r) => {
+          return (
+            <div
+              key={r.id}
+              className="grid min-w-0 gap-3 border-b border-border py-4 last:border-b-0"
+            >
+              {editing?.id === r.id ? (
+                <form
+                  className="grid w-full min-w-0 gap-2 sm:grid-cols-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    update.mutate(editing);
+                  }}
+                >
+                  <input
+                    className="input"
+                    value={editing.name}
+                    onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                  />
+                  <input
+                    className="input"
+                    value={editing.phone}
+                    onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
+                  />
+                  <input
+                    className="input"
+                    value={editing.address}
+                    onChange={(e) => setEditing({ ...editing, address: e.target.value })}
+                  />
+                  <Button type="submit" className="btn-primary btn-sm">
+                    {t("save")}
+                  </Button>
+                  <Button
+                    type="button"
+                    className="btn-outline btn-sm"
+                    onClick={() => setEditing(null)}
+                  >
+                    {t("cancel")}
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <Link to="/retailers/$id" params={{ id: r.id }} className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate font-semibold text-foreground">{r.name}</span>
+                      {!r.is_active ? <span className="badge-warn">{t("inactive")}</span> : null}
                     </div>
-                  ) : <Button asChild variant="outline" className="whitespace-normal"><Link to="/retailers/$id" params={{ id: r.id }}>{t("receive_payment")}</Link></Button>}
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })}
+                    <div className="text-xs text-muted-foreground">
+                      {r.phone || "—"}
+                      {` · ${t("ledger")}`}
+                    </div>
+                  </Link>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                    <RetailerBalance
+                      retailerId={r.id}
+                      isAdmin={isAdmin}
+                      userId={userId}
+                      data={data}
+                    />
+                    {isAdmin ? (
+                      <div className="flex shrink-0 items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-11 w-11"
+                          type="button"
+                          aria-label={t("edit")}
+                          title={t("edit")}
+                          onClick={() => setEditing(r)}
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-11 w-11"
+                          type="button"
+                          aria-label={r.is_active ? t("deactivate") : t("activate")}
+                          title={r.is_active ? t("deactivate") : t("activate")}
+                          onClick={() => toggleActive.mutate(r)}
+                          disabled={toggleActive.isPending}
+                        >
+                          <Power />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          aria-label={t("delete")}
+                          title={t("delete")}
+                          className="h-11 w-11 text-destructive"
+                          onClick={() => {
+                            if (window.confirm(t("confirmDelete"))) remove.mutate(r);
+                          }}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button asChild variant="outline" className="whitespace-normal">
+                        <Link to="/retailers/$id" params={{ id: r.id }}>
+                          {t("receive_payment")}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      <ListPagination
+        page={currentPage}
+        pageSize={pageSize}
+        total={orderedRetailers.length}
+        onPageChange={setPage}
+        lang={lang}
+      />
     </div>
   );
 }
@@ -267,7 +351,13 @@ function RetailerBalance({
   isAdmin: boolean;
   userId: string;
   data: {
-    sales: { id: string; retailer_id: string; salesman_id: string; total_amount: number; paid_amount: number }[];
+    sales: {
+      id: string;
+      retailer_id: string;
+      salesman_id: string;
+      total_amount: number;
+      paid_amount: number;
+    }[];
     payments: { id: string; retailer_id: string; salesman_id: string; amount: number }[];
   };
 }) {

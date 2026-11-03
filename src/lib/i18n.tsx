@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Lang = "bn" | "en";
 
@@ -12,6 +6,7 @@ const dict: Record<Lang, Record<string, string>> = {
   bn: {
     nav_settings: "সেটিংস",
     nav_access: "প্রবেশাধিকার",
+    nav_reversals: "লেনদেন বাতিল",
     main_navigation: "প্রধান মেনু",
     more_menu: "আরও",
     all_menu: "সকল মেনু",
@@ -20,12 +15,17 @@ const dict: Record<Lang, Record<string, string>> = {
     companyName: "FIROZA ENTERPRISE",
     invalid_cash: "টাকার পরিমাণ বাকি/হাতের টাকার সীমার মধ্যে দিন",
     account_inactive: "আপনার অ্যাকাউন্ট বন্ধ আছে; অ্যাডমিনের সঙ্গে যোগাযোগ করুন।",
+    account_setup_missing:
+      "লগইন হয়েছে, কিন্তু অ্যাপ অ্যাকাউন্ট তৈরি হয়নি। Supabase Auth trigger ও অ্যাডমিনের সঙ্গে যোগাযোগ করুন।",
+    invalid_credentials_help:
+      "ইমেইল বা পাসওয়ার্ড Supabase Auth-এর সঙ্গে মিলছে না। “পাসওয়ার্ড ভুলে গেছেন?” দিয়ে রিসেট করুন বা Supabase Auth থেকে পাসওয়ার্ড পরিবর্তন করুন।",
     sr_stock: "SR-এর হাতে মাল",
     reset_password: "পাসওয়ার্ড বদলান",
     new_password: "নতুন পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)",
     confirm_password: "নতুন পাসওয়ার্ড আবার দিন",
     password_mismatch: "দুটি পাসওয়ার্ড মেলেনি",
-    password_reset_failed: "পাসওয়ার্ড পরিবর্তন হয়নি। অনুমতি ও পাসওয়ার্ড যাচাই করে আবার চেষ্টা করুন।",
+    password_reset_failed:
+      "পাসওয়ার্ড পরিবর্তন হয়নি। অনুমতি ও পাসওয়ার্ড যাচাই করে আবার চেষ্টা করুন।",
     password_updated: "SR-এর পাসওয়ার্ড পরিবর্তন হয়েছে",
     other_lang: "English",
     signOut: "সাইন আউট",
@@ -40,8 +40,13 @@ const dict: Record<Lang, Record<string, string>> = {
     fullName: "নাম",
     signInBtn: "প্রবেশ করুন",
     signUpBtn: "অ্যাকাউন্ট খুলুন",
-    firstUserNote:
-      "প্রথমবার সাইন আপ করা ব্যক্তি Admin হবেন। পরে Admin প্যানেল থেকে SR-দের অ্যাকাউন্ট বানাবেন।",
+    forgot_password: "পাসওয়ার্ড ভুলে গেছেন?",
+    send_recovery: "রিসেট ইমেইল পাঠান",
+    update_password: "নতুন পাসওয়ার্ড সংরক্ষণ",
+    recovery_sent: "অ্যাকাউন্ট থাকলে পাসওয়ার্ড রিসেটের ইমেইল পাঠানো হয়েছে।",
+    recovery_password_hint: "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।",
+    password_updated_self: "পাসওয়ার্ড পরিবর্তন হয়েছে।",
+    firstUserNote: "প্রথম অ্যাকাউন্ট Admin হবে। পরের পাবলিক সাইন-আপ Admin অনুমোদনের পর চালু হবে।",
     checkEmail:
       "নিশ্চিতকরণ ইমেইল পাঠানো হয়েছে — ইমেইল খুলে অ্যাকাউন্ট কনফার্ম করুন, তারপর সাইন ইন করুন।",
     have_account: "অ্যাকাউন্ট আছে?",
@@ -81,6 +86,8 @@ const dict: Record<Lang, Record<string, string>> = {
     nav_products: "প্রোডাক্ট",
     nav_salesmen: "SR",
     nav_stock_issue: "মাল ইস্যু",
+    nav_stock_receipt: "স্টক গ্রহণ",
+    insufficient_company_stock: "কোম্পানির স্টক যথেষ্ট নয়",
     nav_new_sale: "বিক্রি",
     nav_retailers: "ডিলার",
     nav_settlement: "জমা ও ফেরত",
@@ -192,6 +199,7 @@ const dict: Record<Lang, Record<string, string>> = {
   en: {
     nav_settings: "Settings",
     nav_access: "Access",
+    nav_reversals: "Reversals",
     main_navigation: "Main navigation",
     more_menu: "More",
     all_menu: "All menus",
@@ -200,12 +208,17 @@ const dict: Record<Lang, Record<string, string>> = {
     companyName: "FIROZA ENTERPRISE",
     invalid_cash: "Enter a valid amount within the due / cash balance",
     account_inactive: "Your account is inactive. Contact your admin.",
+    account_setup_missing:
+      "You signed in, but your app account is missing. Contact the admin to check the Supabase Auth trigger.",
+    invalid_credentials_help:
+      "This email/password pair was not accepted by Supabase Auth. Use “Forgot password?” to reset it, or change the password in Supabase Auth.",
     sr_stock: "Stock with SR",
     reset_password: "Change password",
     new_password: "New password (at least 8 characters)",
     confirm_password: "Confirm new password",
     password_mismatch: "Passwords do not match",
-    password_reset_failed: "Password was not changed. Check permissions and password, then try again.",
+    password_reset_failed:
+      "Password was not changed. Check permissions and password, then try again.",
     password_updated: "SR password updated",
     other_lang: "বাংলা",
     signOut: "Sign out",
@@ -219,10 +232,15 @@ const dict: Record<Lang, Record<string, string>> = {
     fullName: "Full name",
     signInBtn: "Sign in",
     signUpBtn: "Create account",
+    forgot_password: "Forgot password?",
+    send_recovery: "Send reset email",
+    update_password: "Save new password",
+    recovery_sent: "If an account exists, a password reset email has been sent.",
+    recovery_password_hint: "Password must be at least 8 characters.",
+    password_updated_self: "Password updated.",
     firstUserNote:
-      "The first person to sign up becomes the Admin. SR accounts are created from the Admin panel afterwards.",
-    checkEmail:
-      "A confirmation email was sent — open it to confirm your account, then sign in.",
+      "The first account becomes Admin. Later public sign-ups need Admin approval before access.",
+    checkEmail: "A confirmation email was sent — open it to confirm your account, then sign in.",
     have_account: "Already have an account?",
     no_account: "No account yet?",
     save: "Save",
@@ -258,6 +276,8 @@ const dict: Record<Lang, Record<string, string>> = {
     nav_products: "Products",
     nav_salesmen: "SR",
     nav_stock_issue: "Stock issue",
+    nav_stock_receipt: "Stock receipt",
+    insufficient_company_stock: "Insufficient company stock",
     nav_new_sale: "New sale",
     nav_retailers: "Dealers",
     nav_settlement: "Deposit & return",
@@ -400,11 +420,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = (key: string) => dict[lang][key] ?? dict.bn[key] ?? key;
 
-  return (
-    <LangContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </LangContext.Provider>
-  );
+  return <LangContext.Provider value={{ lang, setLang, t }}>{children}</LangContext.Provider>;
 }
 
 export const useLang = () => useContext(LangContext);

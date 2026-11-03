@@ -15,16 +15,16 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { registerOfflineApp } from '@/lib/pwa';
-import { forgetLocalIdentity } from '@/lib/offline';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
-import '@fontsource/inter/700.css';
-import '@fontsource/noto-sans-bengali/400.css';
-import '@fontsource/noto-sans-bengali/500.css';
-import '@fontsource/noto-sans-bengali/600.css';
-import '@fontsource/noto-sans-bengali/700.css';
+import { registerOfflineApp } from "@/lib/pwa";
+import { forgetLocalIdentity } from "@/lib/offline";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/noto-sans-bengali/400.css";
+import "@fontsource/noto-sans-bengali/500.css";
+import "@fontsource/noto-sans-bengali/600.css";
+import "@fontsource/noto-sans-bengali/700.css";
 
 function NotFoundComponent() {
   return (
@@ -36,10 +36,7 @@ function NotFoundComponent() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className="mt-6">
-          <Link
-            to="/"
-            className="btn-primary"
-          >
+          <Link to="/" className="btn-primary">
             Go home
           </Link>
         </div>
@@ -64,6 +61,11 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {error instanceof Error && (
+          <p role="alert" className="mt-2 break-words text-sm text-destructive">
+            {error.message}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -74,10 +76,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
           >
             Try again
           </button>
-          <a
-            href="/"
-            className="btn-outline"
-          >
+          <a href="/" className="btn-outline">
             Go home
           </a>
         </div>
@@ -104,8 +103,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: 'theme-color', content: '#156b70' },
-      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      { name: "theme-color", content: "#156b70" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
     ],
     links: [
       {
@@ -113,8 +112,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: 'manifest', href: '/manifest.webmanifest' },
-      { rel: 'apple-touch-icon', href: '/icons/fe-192.png' },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/fe-192.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -146,7 +145,10 @@ function RootComponent() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') { forgetLocalIdentity(); queryClient.clear(); }
+      if (event === "SIGNED_OUT") {
+        forgetLocalIdentity();
+        queryClient.clear();
+      }
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") {
         return;
       }

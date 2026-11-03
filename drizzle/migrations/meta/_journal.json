@@ -50,6 +50,34 @@
       "when": 1793595270829,
       "tag": "0006_lock_access_management_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793690000000,
+      "tag": "0007_inventory_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793690100000,
+      "tag": "0008_signup_approval",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793690200000,
+      "tag": "0009_financial_corrections",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793690300000,
+      "tag": "0010_transaction_reversals",
+      "breakpoints": true
     }
   ]
 }

@@ -13,12 +13,16 @@ import {
   perProductStock,
   summarizeSalesman,
 } from "@/lib/hisab";
+import { companyStock } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "ড্যাশবোর্ড — FE MANAGEMENT" },
-      { name: "description", content: "FIROZA ENTERPRISE dashboard: stock, sales, dues, deposits." },
+      {
+        name: "description",
+        content: "FIROZA ENTERPRISE dashboard: stock, sales, dues, deposits.",
+      },
       { property: "og:title", content: "ড্যাশবোর্ড — FE MANAGEMENT" },
       {
         property: "og:description",
@@ -51,7 +55,7 @@ function DashboardPage() {
 }
 
 function AdminDashboard({ userId }: { userId: string }) {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const data = useQuery({
     queryKey: ["admin-dashboard"],
     queryFn: () => fetchAdminData(),
@@ -68,30 +72,106 @@ function AdminDashboard({ userId }: { userId: string }) {
   const d = data.data;
   if (!d) return null;
 
-  const dealerStock = d.imeiUnits.filter(u=>u.status === "in_dealer_stock" && !u.is_damaged).length;
-  const totalSales=d.sales.reduce((a,s)=>a+toNumber(s.total_amount),0);
-  const cash=d.sales.reduce((a,s)=>a+toNumber(s.paid_amount),0)+d.payments.reduce((a,p)=>a+toNumber(p.amount),0);
-  const deposited=d.deposits.reduce((a,p)=>a+toNumber(p.amount),0);
-  const returned=d.returns.reduce((a,r)=>a+r.quantity,0);
-  const remaining=d.issueItems.reduce((a,i)=>a+i.quantity,0)-d.saleItems.reduce((a,i)=>a+i.quantity,0)-returned;
+  const dealerStock = d.imeiUnits.filter(
+    (u) => u.status === "in_dealer_stock" && !u.is_damaged,
+  ).length;
+  const totalSales = d.sales.reduce((a, s) => a + toNumber(s.total_amount), 0);
+  const cash =
+    d.sales.reduce((a, s) => a + toNumber(s.paid_amount), 0) +
+    d.payments.reduce((a, p) => a + toNumber(p.amount), 0);
+  const deposited = d.deposits.reduce((a, p) => a + toNumber(p.amount), 0);
+  const refunds = d.dealerReturns.reduce((a, r) => a + toNumber(r.refund_amount), 0);
+  const returned = d.returns.reduce((a, r) => a + r.quantity, 0);
+  const remaining =
+    d.issueItems.reduce((a, i) => a + i.quantity, 0) -
+    d.saleItems.reduce((a, i) => a + i.quantity, 0) -
+    returned;
+  const cashOnHand = cash - deposited - refunds;
+  const outstandingDues = dealerDues(d.sales, d.payments, d.dealerReturns);
+  const outOfStock = d.products.filter(
+    (product) =>
+      product.is_active && product.category === "button_phone" && companyStock(d, product.id) <= 0,
+  );
 
   return (
     <AppShell title={t("nav_dashboard")}>
       <h1 className="page-title mb-4">{t("nav_dashboard")}</h1>
 
+      <section
+        className="card mb-5"
+        aria-label={lang === "bn" ? "ড্যাশবোর্ড সতর্কতা" : "Dashboard alerts"}
+      >
+        <h2 className="card-title mb-2">{lang === "bn" ? "সতর্কতা" : "Alerts"}</h2>
+        {outOfStock.length === 0 && cashOnHand <= 0 && outstandingDues <= 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {lang === "bn" ? "এখন কোনো জরুরি সতর্কতা নেই।" : "No actionable alerts right now."}
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {outOfStock.length > 0 && (
+              <li>
+                <Link className="text-warning-foreground underline" to="/stock-receipt">
+                  {lang === "bn"
+                    ? `${outOfStock.length}টি button phone পণ্যের কোম্পানি স্টক শেষ বা ঋণাত্মক`
+                    : `${outOfStock.length} button-phone products are out of company stock`}{" "}
+                  → {t("nav_stock_receipt")}
+                </Link>
+              </li>
+            )}
+            {cashOnHand > 0 && (
+              <li>
+                <Link className="text-warning-foreground underline" to="/settlement">
+                  {lang === "bn"
+                    ? `SR-এর হাতে ${formatBDT(cashOnHand)} জমা বাকি`
+                    : `${formatBDT(cashOnHand)} in SR cash is awaiting settlement`}{" "}
+                  → {t("nav_settlement")}
+                </Link>
+              </li>
+            )}
+            {outstandingDues > 0 && (
+              <li>
+                <Link className="text-warning-foreground underline" to="/retailers">
+                  {lang === "bn"
+                    ? `ডিলারের বকেয়া ${formatBDT(outstandingDues)}`
+                    : `Outstanding dealer dues: ${formatBDT(outstandingDues)}`}{" "}
+                  → {t("nav_retailers")}
+                </Link>
+              </li>
+            )}
+          </ul>
+        )}
+      </section>
+
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[[t("total_sales"),formatBDT(totalSales)], [t("dash_cash_collected"),formatBDT(cash)],
-          [t("dash_deposited"),formatBDT(deposited)], [t("dash_cash_on_hand"),formatBDT(cash-deposited)],
-          [t("dash_dues"),formatBDT(dealerDues(d.sales,d.payments))], [t("sr_stock"),String(remaining)],
-          [t("return_stock"),String(returned)], [t("damaged"),String(d.imeiUnits.filter(u=>u.is_damaged).length)]].map(([label,value])=>(
-          <div className="stat-card" key={label}><div className="stat-value">{value}</div><div className="stat-label">{label}</div></div>
+        {[
+          [t("total_sales"), formatBDT(totalSales)],
+          [t("dash_cash_collected"), formatBDT(cash)],
+          [t("dash_deposited"), formatBDT(deposited)],
+          [t("dash_cash_on_hand"), formatBDT(cashOnHand)],
+          [t("dash_dues"), formatBDT(dealerDues(d.sales, d.payments, d.dealerReturns))],
+          [t("sr_stock"), String(remaining)],
+          [t("return_stock"), String(returned)],
+          [t("damaged"), String(d.imeiUnits.filter((u) => u.is_damaged).length)],
+        ].map(([label, value]) => (
+          <div className="stat-card" key={label}>
+            <div className="stat-value">{value}</div>
+            <div className="stat-label">{label}</div>
+          </div>
         ))}
       </div>
       <div className="mb-5 flex flex-wrap gap-2">
-        <Link to="/stock-issue" className="btn-primary">{t("nav_stock_issue")}</Link>
-        <Link to="/sales" className="btn-outline">{t("all_sales")}</Link>
-        <Link to="/retailers" className="btn-outline">{t("ledger")}</Link>
-        <Link to="/settlement" className="btn-outline">{t("nav_settlement")}</Link>
+        <Link to="/stock-issue" className="btn-primary">
+          {t("nav_stock_issue")}
+        </Link>
+        <Link to="/sales" className="btn-outline">
+          {t("all_sales")}
+        </Link>
+        <Link to="/retailers" className="btn-outline">
+          {t("ledger")}
+        </Link>
+        <Link to="/settlement" className="btn-outline">
+          {t("nav_settlement")}
+        </Link>
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -136,21 +216,35 @@ function AdminDashboard({ userId }: { userId: string }) {
                   const sales = d.sales.filter((x) => x.salesman_id === s.id);
                   const payments = d.payments.filter((x) => x.salesman_id === s.id);
                   const deposits = d.deposits.filter((x) => x.salesman_id === s.id);
-                  const salesTotal =
-                    sales.reduce((a, x) => a + toNumber(x.total_amount), 0);
+                  const salesTotal = sales.reduce((a, x) => a + toNumber(x.total_amount), 0);
                   const cash =
                     sales.reduce((a, x) => a + toNumber(x.paid_amount), 0) +
                     payments.reduce((a, x) => a + toNumber(x.amount), 0);
                   const dep = deposits.reduce((a, x) => a + toNumber(x.amount), 0);
-                  const dues = dealerDues(sales,payments);
+                  const dues = dealerDues(
+                    sales,
+                    payments,
+                    d.dealerReturns.filter((r) => r.salesman_id === s.id),
+                  );
                   return (
                     <tr key={s.id} className="border-b border-border last:border-0">
                       <td className="table-cell font-medium">{s.full_name || "—"}</td>
-                      <td data-label={t("dash_issued")} className="table-cell">{withStock} {t("dash_pieces")}</td>
-                      <td data-label={t("dash_sales_total")} className="table-cell">{formatBDT(salesTotal)}</td>
-                      <td data-label={t("dash_cash_collected")} className="table-cell">{formatBDT(cash)}</td>
-                      <td data-label={t("dash_deposited")} className="table-cell">{formatBDT(dep)}</td>
-                      <td data-label={t("dash_dues")} className="table-cell font-semibold text-warning-foreground">
+                      <td data-label={t("dash_issued")} className="table-cell">
+                        {withStock} {t("dash_pieces")}
+                      </td>
+                      <td data-label={t("dash_sales_total")} className="table-cell">
+                        {formatBDT(salesTotal)}
+                      </td>
+                      <td data-label={t("dash_cash_collected")} className="table-cell">
+                        {formatBDT(cash)}
+                      </td>
+                      <td data-label={t("dash_deposited")} className="table-cell">
+                        {formatBDT(dep)}
+                      </td>
+                      <td
+                        data-label={t("dash_dues")}
+                        className="table-cell font-semibold text-warning-foreground"
+                      >
                         {formatBDT(dues)}
                       </td>
                     </tr>
@@ -186,13 +280,31 @@ function AdminDashboard({ userId }: { userId: string }) {
                     d.payments
                       .filter((p) => p.retailer_id === r.id)
                       .reduce((a, p) => a + toNumber(p.amount), 0);
-                  const balance = Math.max(0, salesTotal - cash);
+                  const credit = d.dealerReturns
+                    .filter((x) => x.retailer_id === r.id)
+                    .reduce((sum, x) => sum + x.credit_amount, 0);
+                  const balance = Math.max(0, salesTotal - cash - credit);
                   return (
                     <tr key={r.id} className="border-b border-border last:border-0">
-                      <td className="table-cell font-medium"><Link to="/retailers/$id" params={{id:r.id}} className="text-primary underline">{r.name}</Link></td>
-                      <td data-label={t("total_sales")} className="table-cell">{formatBDT(salesTotal)}</td>
-                      <td data-label={t("total_paid")} className="table-cell">{formatBDT(cash)}</td>
-                      <td data-label={t("dash_balance")} className="table-cell font-semibold text-warning-foreground">
+                      <td className="table-cell font-medium">
+                        <Link
+                          to="/retailers/$id"
+                          params={{ id: r.id }}
+                          className="text-primary underline"
+                        >
+                          {r.name}
+                        </Link>
+                      </td>
+                      <td data-label={t("total_sales")} className="table-cell">
+                        {formatBDT(salesTotal)}
+                      </td>
+                      <td data-label={t("total_paid")} className="table-cell">
+                        {formatBDT(cash)}
+                      </td>
+                      <td
+                        data-label={t("dash_balance")}
+                        className="table-cell font-semibold text-warning-foreground"
+                      >
                         {formatBDT(balance)}
                       </td>
                     </tr>
@@ -252,8 +364,12 @@ function SalesmanDashboard({ userId }: { userId: string }) {
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3">
-        <Link to="/retailers" className="btn-primary">{t("receive_payment")}</Link>
-        <Link to="/settlement" className="btn-outline">{t("deposit_entry")}</Link>
+        <Link to="/retailers" className="btn-primary">
+          {t("receive_payment")}
+        </Link>
+        <Link to="/settlement" className="btn-outline">
+          {t("deposit_entry")}
+        </Link>
       </div>
       <section className="card mb-5">
         <h2 className="card-title mb-3">{t("dash_my_stock")}</h2>
@@ -279,8 +395,12 @@ function SalesmanDashboard({ userId }: { userId: string }) {
                     return (
                       <tr key={p.id} className="border-b border-border last:border-0">
                         <td className="table-cell font-medium">{p.name}</td>
-                        <td data-label={t("dash_issued")} className="table-cell">{row.issued}</td>
-                        <td data-label={t("dash_sold")} className="table-cell">{row.sold}</td>
+                        <td data-label={t("dash_issued")} className="table-cell">
+                          {row.issued}
+                        </td>
+                        <td data-label={t("dash_sold")} className="table-cell">
+                          {row.sold}
+                        </td>
                         <td data-label={t("dash_remaining")} className="table-cell font-semibold">
                           {Math.max(0, row.issued - row.sold - row.returned)}
                         </td>
@@ -295,9 +415,7 @@ function SalesmanDashboard({ userId }: { userId: string }) {
 
       <section className="card">
         <h2 className="card-title mb-3">{t("dash_dues")}</h2>
-        <p className="text-2xl font-bold text-warning-foreground">
-          {formatBDT(summary.dues)}
-        </p>
+        <p className="text-2xl font-bold text-warning-foreground">{formatBDT(summary.dues)}</p>
       </section>
     </AppShell>
   );
