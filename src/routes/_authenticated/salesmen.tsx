@@ -59,20 +59,38 @@ function SalesmenPage() {
     );
   }
 
-  if (list.error) throw list.error;
+  if (list.error) {
+    return (
+      <AppShell title={t("salesmen_title")}>
+        <h1 className="page-title mb-4">{t("salesmen_title")}</h1>
+        <p role="alert" className="card text-sm text-destructive">
+          {list.error.message}
+        </p>
+      </AppShell>
+    );
+  }
   return (
     <AppShell title={t("salesmen_title")}>
       <h1 className="page-title mb-4">{t("salesmen_title")}</h1>
-      <AddSalesman onDone={() => queryClient.invalidateQueries({ queryKey: ["salesmen-list"] })} />
+      {list.data && !list.data.authManagementAvailable && (
+        <p role="status" className="card mb-4 text-sm text-warning-foreground">
+          {t("auth_admin_unavailable")}
+        </p>
+      )}
+      <AddSalesman
+        disabled={list.data?.authManagementAvailable === false}
+        onDone={() => queryClient.invalidateQueries({ queryKey: ["salesmen-list"] })}
+      />
       <SalesmanList
-        rows={list.data}
+        rows={list.data?.accounts}
+        authManagementAvailable={list.data?.authManagementAvailable === true}
         onChange={() => queryClient.invalidateQueries({ queryKey: ["salesmen-list"] })}
       />
     </AppShell>
   );
 }
 
-function AddSalesman({ onDone }: { onDone: () => void }) {
+function AddSalesman({ onDone, disabled }: { onDone: () => void; disabled: boolean }) {
   const { t } = useLang();
   const createFn = useServerFn(createSalesmanAccount);
   const [fullName, setFullName] = useState("");
@@ -98,7 +116,12 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
 
   if (!open) {
     return (
-      <Button type="button" className="btn-primary mb-4" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        className="btn-primary mb-4"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+      >
         + {t("add_salesman")}
       </Button>
     );
@@ -172,11 +195,13 @@ function AddSalesman({ onDone }: { onDone: () => void }) {
 
 function SalesmanList({
   rows,
+  authManagementAvailable,
   onChange,
 }: {
   rows:
     | { id: string; email: string; full_name: string; is_active: boolean; created_at: string }[]
     | undefined;
+  authManagementAvailable: boolean;
   onChange: () => void;
 }) {
   const { t } = useLang();
@@ -261,7 +286,9 @@ function SalesmanList({
             >
               <Pencil />
             </Button>
-            <SrPasswordReset userId={row.id} name={row.full_name} email={row.email} />
+            {authManagementAvailable && (
+              <SrPasswordReset userId={row.id} name={row.full_name} email={row.email} />
+            )}
             <span className={row.is_active ? "badge-ok" : "badge-warn"}>
               {row.is_active ? t("active") : t("inactive")}
             </span>

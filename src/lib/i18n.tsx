@@ -17,6 +17,8 @@ const dict: Record<Lang, Record<string, string>> = {
     account_inactive: "আপনার অ্যাকাউন্ট বন্ধ আছে; অ্যাডমিনের সঙ্গে যোগাযোগ করুন।",
     account_setup_missing:
       "লগইন হয়েছে, কিন্তু অ্যাপ অ্যাকাউন্ট তৈরি হয়নি। Supabase Auth trigger ও অ্যাডমিনের সঙ্গে যোগাযোগ করুন।",
+    auth_admin_unavailable:
+      "Supabase Auth-এর Admin ফিচার বর্তমানে চালু নেই। সাধারণ পেজ চলবে; Admin Auth ফিচার চালু করতে সার্ভারে SUPABASE_SERVICE_ROLE_KEY সেট করুন।",
     invalid_credentials_help:
       "ইমেইল বা পাসওয়ার্ড Supabase Auth-এর সঙ্গে মিলছে না। “পাসওয়ার্ড ভুলে গেছেন?” দিয়ে রিসেট করুন বা Supabase Auth থেকে পাসওয়ার্ড পরিবর্তন করুন।",
     sr_stock: "SR-এর হাতে মাল",
@@ -210,6 +212,8 @@ const dict: Record<Lang, Record<string, string>> = {
     account_inactive: "Your account is inactive. Contact your admin.",
     account_setup_missing:
       "You signed in, but your app account is missing. Contact the admin to check the Supabase Auth trigger.",
+    auth_admin_unavailable:
+      "Supabase Auth Admin features are disabled. The rest of the app remains available; configure SUPABASE_SERVICE_ROLE_KEY on the server to enable them.",
     invalid_credentials_help:
       "This email/password pair was not accepted by Supabase Auth. Use “Forgot password?” to reset it, or change the password in Supabase Auth.",
     sr_stock: "Stock with SR",

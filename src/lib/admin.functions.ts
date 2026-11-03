@@ -25,7 +25,8 @@ export const createSalesmanAccount = createServerFn({ method: "POST" })
     const { error: activeError } = await context.supabase.rpc("require_active_account");
     if (activeError) throw new Error(activeError.message);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requireSupabaseAdminClient } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = requireSupabaseAdminClient();
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
@@ -50,7 +51,8 @@ export const resetSalesmanPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { authorizeSrPasswordReset } = await import("@/lib/sr-password.server");
     await authorizeSrPasswordReset(context.supabase, context.userId, data.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requireSupabaseAdminClient } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = requireSupabaseAdminClient();
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.password,
     });
@@ -68,7 +70,6 @@ export const listSalesmanAccounts = createServerFn({ method: "GET" })
     if (error || admin !== true) throw new Error("Forbidden");
     const { error: inactive } = await context.supabase.rpc("require_active_account");
     if (inactive) throw new Error("Forbidden");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: roles, error: rolesError } = await context.supabase
       .from("user_roles")
       .select("user_id, role");
@@ -82,21 +83,37 @@ export const listSalesmanAccounts = createServerFn({ method: "GET" })
         )
         .map((r) => r.user_id),
     );
-    if (!srIds.size) return [];
+    if (!srIds.size) return { accounts: [], authManagementAvailable: true };
     const { data: profiles, error: profileError } = await context.supabase
       .from("profiles")
       .select("id, full_name, is_active, created_at")
       .in("id", [...srIds]);
     if (profileError) throw new Error("Could not read SR accounts");
     const emails = new Map<string, string>();
+    const { getSupabaseAdminClient } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = getSupabaseAdminClient();
+    if (!supabaseAdmin) {
+      return {
+        accounts: (profiles ?? []).map((p) => ({ ...p, email: "" })),
+        authManagementAvailable: false,
+      };
+    }
     for (let page = 1; ; page++) {
       const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
         page,
         perPage: 1000,
       });
-      if (listError) throw new Error("Could not read SR accounts");
+      if (listError) {
+        return {
+          accounts: (profiles ?? []).map((p) => ({ ...p, email: "" })),
+          authManagementAvailable: false,
+        };
+      }
       for (const user of data.users) if (srIds.has(user.id)) emails.set(user.id, user.email ?? "");
       if (data.users.length < 1000) break;
     }
-    return (profiles ?? []).map((p) => ({ ...p, email: emails.get(p.id) ?? "" }));
+    return {
+      accounts: (profiles ?? []).map((p) => ({ ...p, email: emails.get(p.id) ?? "" })),
+      authManagementAvailable: true,
+    };
   });
