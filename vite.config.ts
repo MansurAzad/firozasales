@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 import { VitePWA, type VitePluginPWAAPI } from "vite-plugin-pwa";
 import { existsSync } from "node:fs";
 const clientDir =
-  process.env["NITRO_PRESET"] === "vercel" ? ".vercel/output/static" : "dist/client";
+  process.env["NITRO_PRESET"] === "vercel" ? ".vercel/output/static" : ".output/public";
 
 export default defineConfig({
   plugins: [
