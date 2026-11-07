@@ -10,7 +10,6 @@ import { existsSync } from 'node:fs';
 // Vercel builds (NITRO_PRESET=vercel) publish static files from .vercel/output/static.
 // Outside Lovable builds, the vercel preset writes client files and the prerendered shell there.
 const clientDir = process.env['NITRO_PRESET'] === 'vercel' && !process.env['LOVABLE_SANDBOX'] && !process.env['DEV_SERVER__PROJECT_PATH'] ? '.vercel/output/static' : 'dist/client';
-import { companyLogoUrl, companyLogoRevision } from './src/lib/company-brand';
 
 export default defineConfig({
   vite: {
@@ -21,7 +20,6 @@ export default defineConfig({
       devOptions: { enabled: false }, manifest: false,
       includeAssets: ['icons/*.png', 'manifest.webmanifest', 'offline.html'],
       workbox: {
-        additionalManifestEntries: [{ url: companyLogoUrl, revision: companyLogoRevision }],
         globPatterns: ['**/*.{js,css,woff2,png,ico}', '_shell.html'], maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         // Only the NetworkFirst rule handles navigations; its fallback is the anonymous shell.
         navigateFallback: null,
