@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import type { ImeiScanEvent } from "@/components/ImeiScanner";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -10,7 +8,8 @@ import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { usePosting, fetchAccounting } from "@/lib/accounting";
-import { findImei, sessionId } from "@/lib/offline";
+import { findImei } from "@/lib/offline";
+import { saveImeiScanHistory } from "@/lib/imei-history";
 import { formatBDT } from "@/lib/money";
 import { displayBusinessDate } from "@/lib/business-time";
 
@@ -80,20 +79,6 @@ function StockReceiptPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
-
-  const saveImeiScan = async (event: ImeiScanEvent) => {
-    const userId = await sessionId();
-    if (!userId) return;
-    const { error } = await supabase.from("imei_scan_history").insert({
-      user_id: userId,
-      imei: event.imei,
-      source: event.source,
-      outcome: event.outcome,
-      message: event.message.slice(0, 240),
-      product_id: productId || null,
-    });
-    if (error) console.warn("Could not persist IMEI scan history", error.message);
-  };
 
   const checkImei = async (imei: string) => {
     if (
@@ -215,7 +200,7 @@ function StockReceiptPage() {
                   <ImeiScanner
                     hint={t("imei_list_hint")}
                     check={checkImei}
-                    onScanEvent={saveImeiScan}
+                    onScanEvent={(event) => saveImeiScanHistory(event, productId)}
                     onAccepted={(imei) =>
                       setUnits((current) => [...current, { id: crypto.randomUUID(), imei }])
                     }
