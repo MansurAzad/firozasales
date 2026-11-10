@@ -1,5 +1,5 @@
 import { fetchAccounting, dealerDues } from "./accounting";
-import { toNumber } from "./money";
+import { expectedCashOnHand, toNumber } from "./money";
 
 export function sumBy<T>(rows: T[], f: (row: T) => number): number {
   return rows.reduce((acc, row) => acc + f(row), 0);
@@ -183,7 +183,7 @@ export function summarizeSalesman(data: SalesmanData): SalesmanSummary {
   return {
     cashCollected,
     deposited,
-    cashOnHand: cashCollected - deposited - refunds,
+    cashOnHand: expectedCashOnHand(cashCollected, deposited, refunds),
     dues,
   };
 }
