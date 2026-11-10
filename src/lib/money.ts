@@ -16,3 +16,16 @@ export function toNumber(value: number | string | null | undefined): number {
 export function saleDue(total: number, paid: number): number {
   return Math.max(0, Math.round((total - paid) * 100) / 100);
 }
+
+
+/**
+ * Cash physically held by an SR after cash deposits and cash refunds.
+ * Dealer-return credit notes are not cash refunds and must not be deducted here.
+ */
+export function expectedCashOnHand(
+  cashCollected: number,
+  deposited: number,
+  cashRefunds: number,
+): number {
+  return Math.round((cashCollected - deposited - cashRefunds) * 100) / 100;
+}
