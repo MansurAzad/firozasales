@@ -30,6 +30,13 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+function authErrorMessage(message: string): string {
+  if (/invalid api key|invalid api-key|api key.*invalid/i.test(message)) {
+    return "Supabase API key configuration is invalid. In Vercel, set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to the matching values from the FESTOCK Supabase project, then redeploy. Do not use a service-role/secret key in the browser.";
+  }
+  return message;
+}
+
 function AuthPage() {
   const { t } = useLang();
   const navigate = useNavigate();
@@ -75,7 +82,7 @@ function AuthPage() {
           redirectTo: `${window.location.origin}/auth`,
         });
         if (error) {
-          toast.error(error.message);
+          toast.error(authErrorMessage(error.message));
           return;
         }
         toast.success(t("recovery_sent"));
@@ -91,7 +98,7 @@ function AuthPage() {
         }
         const { error } = await supabase.auth.updateUser({ password });
         if (error) {
-          toast.error(error.message);
+          toast.error(authErrorMessage(error.message));
           return;
         }
         toast.success(t("password_updated_self"));
@@ -145,7 +152,7 @@ function AuthPage() {
           },
         });
         if (error) {
-          toast.error(error.message);
+          toast.error(authErrorMessage(error.message));
           return;
         }
         if (!data.session) {
