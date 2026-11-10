@@ -132,6 +132,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const busyRef = useRef(false);
+  const scanQueueRef = useRef<Array<{ raw: string; source: ImeiScanSource }>>([]);
   const mountedRef = useRef(true);
   const checkRef = useRef(check);
   const acceptedRef = useRef(onAccepted);
@@ -151,7 +152,6 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
   }, []);
 
   const handleCode = useCallback(async (raw: string, source: ImeiScanSource) => {
-    if (busyRef.current) return;
     const code = normalizeImei(raw);
     if (!code) return;
     const now = Date.now();
@@ -162,50 +162,60 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
       now - lastCodeRef.current.at < 1300
     ) return;
     lastCodeRef.current = { code, at: now };
-
-    if (!/^\d{15}$/.test(code)) {
-      const message = bn ? "IMEI অবশ্যই ১৫ সংখ্যার হতে হবে" : "IMEI must contain exactly 15 digits";
-      setSignal({ ok: false, message });
-      record({ imei: code, source, outcome: "invalid_format", message });
-      vibrate([90, 50, 90]);
-      return;
-    }
-    if (!hasValidImeiChecksum(code)) {
-      const message = bn ? "IMEI Luhn Checksum সঠিক নয়" : "Invalid IMEI Luhn checksum";
-      setSignal({ ok: false, message });
-      record({ imei: code, source, outcome: "invalid_checksum", message });
-      vibrate([90, 50, 90]);
-      return;
-    }
+    scanQueueRef.current.push({ raw: code, source });
+    if (busyRef.current) return;
 
     busyRef.current = true;
-    let result: ImeiCheckResult;
     try {
-      result = await checkRef.current(code);
-    } catch (error) {
-      result = {
-        ok: false,
-        message: error instanceof Error ? error.message : (bn ? "যাচাই করা যায়নি" : "Could not verify IMEI"),
-      };
+      while (scanQueueRef.current.length) {
+        const next = scanQueueRef.current.shift();
+        if (!next) continue;
+        const nextCode = normalizeImei(next.raw);
+
+        if (!/^\d{15}$/.test(nextCode)) {
+          const message = bn ? "IMEI অবশ্যই ১৫ সংখ্যার হতে হবে" : "IMEI must contain exactly 15 digits";
+          setSignal({ ok: false, message });
+          record({ imei: nextCode, source: next.source, outcome: "invalid_format", message });
+          vibrate([90, 50, 90]);
+          continue;
+        }
+        if (!hasValidImeiChecksum(nextCode)) {
+          const message = bn ? "IMEI Luhn Checksum সঠিক নয়" : "Invalid IMEI Luhn checksum";
+          setSignal({ ok: false, message });
+          record({ imei: nextCode, source: next.source, outcome: "invalid_checksum", message });
+          vibrate([90, 50, 90]);
+          continue;
+        }
+
+        let result: ImeiCheckResult;
+        try {
+          result = await checkRef.current(nextCode);
+        } catch (error) {
+          result = {
+            ok: false,
+            message: error instanceof Error ? error.message : (bn ? "যাচাই করা যায়নি" : "Could not verify IMEI"),
+          };
+        }
+        if (!mountedRef.current) return;
+        setSignal(result);
+        if (result.ok) {
+          record({ imei: nextCode, source: next.source, outcome: "accepted", message: result.message });
+          acceptedRef.current?.(nextCode);
+          playSuccessBeep();
+          vibrate(45);
+        } else {
+          const duplicate = /duplicate|already|আগে|ডুপ্লিকেট/i.test(result.message);
+          record({
+            imei: nextCode,
+            source: next.source,
+            outcome: duplicate ? "duplicate" : "error",
+            message: result.message,
+          });
+          vibrate([120, 60, 120]);
+        }
+      }
     } finally {
       busyRef.current = false;
-    }
-    if (!mountedRef.current) return;
-    setSignal(result);
-    if (result.ok) {
-      record({ imei: code, source, outcome: "accepted", message: result.message });
-      acceptedRef.current?.(code);
-      playSuccessBeep();
-      vibrate(45);
-    } else {
-      const duplicate = /duplicate|already|আগে|ডুপ্লিকেট/i.test(result.message);
-      record({
-        imei: code,
-        source,
-        outcome: duplicate ? "duplicate" : "error",
-        message: result.message,
-      });
-      vibrate([120, 60, 120]);
     }
   }, [bn, record]);
 
