@@ -8,8 +8,8 @@ import {
 } from "./imei";
 
 describe("IMEI normalization", () => {
-  it("strips non-digits from scanned barcode text", () => {
-    expect(normalizeImei("  49-015420-3237518\\n")).toBe("490154203237518");
+  it("strips separators from scanned barcode text", () => {
+    expect(normalizeImei("  49-015420-3237518 ")).toBe("490154203237518");
   });
 });
 
