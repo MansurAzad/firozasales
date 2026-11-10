@@ -9,6 +9,7 @@ import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { usePosting, fetchAccounting } from "@/lib/accounting";
 import { findImei } from "@/lib/offline";
+import { saveImeiScanHistory } from "@/lib/imei-history";
 import { formatBDT } from "@/lib/money";
 import { displayBusinessDate } from "@/lib/business-time";
 
@@ -199,6 +200,7 @@ function StockReceiptPage() {
                   <ImeiScanner
                     hint={t("imei_list_hint")}
                     check={checkImei}
+                    onScanEvent={(event) => saveImeiScanHistory(event, productId)}
                     onAccepted={(imei) =>
                       setUnits((current) => [...current, { id: crypto.randomUUID(), imei }])
                     }

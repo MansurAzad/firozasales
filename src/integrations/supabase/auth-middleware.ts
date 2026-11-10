@@ -34,7 +34,8 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 export const requireSupabaseAuth = createMiddleware({ type: "function" }).server(
   async ({ next }) => {
     const SUPABASE_URL = process.env["SUPABASE_URL"];
-    const SUPABASE_PUBLISHABLE_KEY = process.env["SUPABASE_PUBLISHABLE_KEY"];
+    const SUPABASE_PUBLISHABLE_KEY =
+      process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_ANON_KEY"];
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       const missing = [
@@ -44,6 +45,12 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
       const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Configure them in the deployment environment.`;
       console.error(`[Supabase] ${message}`);
       throw new Error(message);
+    }
+
+    if (SUPABASE_PUBLISHABLE_KEY.startsWith("sb_secret_")) {
+      throw new Error(
+        "Invalid Supabase server API key: SUPABASE_PUBLISHABLE_KEY must be a publishable key (or legacy anon key), never a secret/service-role key.",
+      );
     }
 
     const request = getRequest();

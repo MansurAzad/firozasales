@@ -47,8 +47,11 @@ releasing the matching application build.
 7. Import this repository in Vercel. `vercel.json` already sets install/build commands and the `.vercel/output` folder (Vercel Build Output API, produced by Nitro's `vercel` preset).
 8. Project Settings → Environment Variables (Production + Preview):
    - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`
-   - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (same values as above)
-   - `SUPABASE_SERVICE_ROLE_KEY` — optional; required only for privileged Auth administration features.
+   - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (same project URL and publishable key as above)
+   - `SUPABASE_SERVICE_ROLE_KEY` — optional; required only for privileged Auth administration features. Server-only; never use it as a browser key.
+   - Legacy projects may use `VITE_SUPABASE_ANON_KEY` and `SUPABASE_ANON_KEY` instead of the publishable-key variables. Do not mix keys from different Supabase projects.
+   - For this repository, the linked Supabase project reference is `kjfzlecurkvvkcwlidxc`; confirm the URL is `https://kjfzlecurkvvkcwlidxc.supabase.co` and copy its active publishable key from Supabase Dashboard → Project Settings → API Keys. Never copy a key from another project.
+   - After changing variables, redeploy the Vercel deployment so Vite rebuilds the browser bundle with the corrected `VITE_*` values.
 9. Add your Vercel domain to the backend's allowed auth redirect URLs.
 10. Deploy. Offline mode (service worker + `/_shell.html`) is generated automatically.
 

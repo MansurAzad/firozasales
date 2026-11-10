@@ -57,8 +57,13 @@ function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
   const SUPABASE_URL = import.meta.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"];
+  // Support both current publishable keys and legacy anon-key variable names.
+  // This prevents older Vercel projects from silently sending an empty/incorrect key.
   const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_PUBLISHABLE_KEY"];
+    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    import.meta.env["VITE_SUPABASE_ANON_KEY"] ||
+    process.env["SUPABASE_PUBLISHABLE_KEY"] ||
+    process.env["SUPABASE_ANON_KEY"];
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
@@ -68,6 +73,21 @@ function createSupabaseClient() {
     const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Configure them in the deployment environment.`;
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
+  }
+
+  if (SUPABASE_PUBLISHABLE_KEY.startsWith("sb_secret_")) {
+    throw new Error(
+      "Invalid Supabase client key: a secret/service-role key was configured in the browser. Use the project's publishable (or legacy anon) key.",
+    );
+  }
+
+  if (
+    !SUPABASE_PUBLISHABLE_KEY.startsWith("sb_publishable_") &&
+    SUPABASE_PUBLISHABLE_KEY.split(".").length !== 3
+  ) {
+    throw new Error(
+      "Invalid Supabase client key format. Configure VITE_SUPABASE_PUBLISHABLE_KEY with the project's publishable key (or VITE_SUPABASE_ANON_KEY with its legacy anon key).",
+    );
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

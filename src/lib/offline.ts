@@ -113,7 +113,18 @@ export async function offlineSnapshot(): Promise<AccountingSnapshot> {
   return projectEntries(account.snapshot, account.entries, account.role);
 }
 export async function findImei(code: string) {
-  return { data: (await offlineSnapshot()).imeiUnits.find((u) => u.imei === code) ?? null };
+  // Prefer a live server lookup so another workstation's recent receipt is detected immediately.
+  if (!isOffline()) {
+    const { data, error } = await supabase
+      .from("imei_units")
+      .select("*")
+      .eq("imei", code)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data) return { data };
+  }
+  // Also check the account-scoped snapshot so pending offline receipts are not duplicated locally.
+  return { data: (await offlineSnapshot()).imeiUnits.find((unit) => unit.imei === code) ?? null };
 }
 export async function enqueue(kind: LocalEntry["kind"], payload: Json, id: string) {
   const uid = await sessionId();

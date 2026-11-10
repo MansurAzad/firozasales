@@ -1,14 +1,11 @@
 /**
- * IMEI rules mirrored by the database functions (issue_imei / sell_imei /
- * return_imei). The client shows green/red signals from this logic; the
- * database re-validates every transition server-side.
+ * IMEI rules mirrored by the database constraint and posting functions.
+ * Standard IMEIs are exactly 15 decimal digits and pass the Luhn checksum.
  */
 
 export type ImeiStatus = "in_dealer_stock" | "with_salesman" | "sold";
-
 export type ImeiAction = "issue" | "sell" | "return";
 
-/** Allowed transitions per action, mirroring the Postgres functions. */
 const ALLOWED: Record<ImeiAction, ImeiStatus[]> = {
   issue: ["in_dealer_stock"],
   sell: ["with_salesman"],
@@ -16,13 +13,29 @@ const ALLOWED: Record<ImeiAction, ImeiStatus[]> = {
 };
 
 export function normalizeImei(raw: string): string {
-  return (raw || "").replace(/\D/g, "");
+  return (raw || "").trim().replace(/[\s-]/g, "");
 }
 
-/** A scanned IMEI must be 14–16 digits (box barcodes vary by manufacturer). */
+/** Validate a standard 15-digit IMEI using its Luhn check digit. */
+export function hasValidImeiChecksum(value: string): boolean {
+  if (!/^\d{15}$/.test(value)) return false;
+
+  let sum = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    let digit = Number(value[index]);
+    // IMEI Luhn doubles the 2nd, 4th, ... digit from the left.
+    if (index % 2 === 1) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+  }
+  return sum % 10 === 0;
+}
+
+/** Backwards-compatible name; now enforces strict 15-digit + Luhn rules. */
 export function isPlausibleImei(code: string): boolean {
-  const digits = normalizeImei(code);
-  return digits.length >= 14 && digits.length <= 16;
+  return hasValidImeiChecksum(normalizeImei(code));
 }
 
 export interface TransitionCheck {
