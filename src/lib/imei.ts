@@ -13,7 +13,7 @@ const ALLOWED: Record<ImeiAction, ImeiStatus[]> = {
 };
 
 export function normalizeImei(raw: string): string {
-  return (raw || "").replace(/\D/g, "");
+  return (raw || "").trim().replace(/[\s-]/g, "");
 }
 
 /** Validate a standard 15-digit IMEI using its Luhn check digit. */
