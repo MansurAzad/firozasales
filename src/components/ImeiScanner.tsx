@@ -133,6 +133,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
   const streamRef = useRef<MediaStream | null>(null);
   const busyRef = useRef(false);
   const scanQueueRef = useRef<Array<{ raw: string; source: ImeiScanSource }>>([]);
+  const acceptedInQueueRef = useRef(new Set<string>());
   const mountedRef = useRef(true);
   const checkRef = useRef(check);
   const acceptedRef = useRef(onAccepted);
@@ -187,6 +188,14 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
           continue;
         }
 
+        if (acceptedInQueueRef.current.has(nextCode)) {
+          const message = bn ? "এই স্ক্যানে IMEI ইতিমধ্যে গ্রহণ করা হয়েছে" : "IMEI already accepted in this scan batch";
+          setSignal({ ok: false, message });
+          record({ imei: nextCode, source: next.source, outcome: "duplicate", message });
+          vibrate([120, 60, 120]);
+          continue;
+        }
+
         let result: ImeiCheckResult;
         try {
           result = await checkRef.current(nextCode);
@@ -199,6 +208,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
         if (!mountedRef.current) return;
         setSignal(result);
         if (result.ok) {
+          acceptedInQueueRef.current.add(nextCode);
           record({ imei: nextCode, source: next.source, outcome: "accepted", message: result.message });
           acceptedRef.current?.(nextCode);
           playSuccessBeep();
@@ -215,6 +225,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
         }
       }
     } finally {
+      acceptedInQueueRef.current.clear();
       busyRef.current = false;
     }
   }, [bn, record]);
