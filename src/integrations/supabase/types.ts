@@ -314,6 +314,54 @@ export type Database = {
           },
         ]
       }
+      imei_scan_history: {
+        Row: {
+          created_at: string
+          id: string
+          imei: string
+          message: string
+          outcome: string
+          product_id: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imei: string
+          message?: string
+          outcome: string
+          product_id?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imei?: string
+          message?: string
+          outcome?: string
+          product_id?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imei_scan_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imei_scan_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_receipt_items: {
         Row: {
           created_at: string
