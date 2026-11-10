@@ -117,7 +117,7 @@ export async function findImei(code: string) {
   if (!isOffline()) {
     const { data, error } = await supabase
       .from("imei_units")
-      .select("id")
+      .select("*")
       .eq("imei", code)
       .maybeSingle();
     if (error) throw new Error(error.message);
