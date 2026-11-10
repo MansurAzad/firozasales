@@ -1,18 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { checkTransition, isPlausibleImei, normalizeImei } from "./imei";
+import {
+  checkTransition,
+  hasValidImeiChecksum,
+  isPlausibleImei,
+  normalizeImei,
+} from "./imei";
 
 describe("IMEI normalization", () => {
   it("strips non-digits from scanned barcode text", () => {
-    expect(normalizeImei("  35-678910-112345\n")).toBe("35678910112345");
+    expect(normalizeImei("  49-015420-3237518\\n")).toBe("490154203237518");
+  });
+});
+
+describe("strict IMEI validation", () => {
+  it("accepts a valid 15-digit IMEI with a valid Luhn check digit", () => {
+    expect(hasValidImeiChecksum("490154203237518")).toBe(true);
+    expect(isPlausibleImei("490154203237518")).toBe(true);
   });
 
-  it("accepts 14–16 digit codes and rejects anything else", () => {
-    expect(isPlausibleImei("35678910112345")).toBe(true); // 14
-    expect(isPlausibleImei("356789101123450")).toBe(true); // 15
-    expect(isPlausibleImei("3567891011234501")).toBe(true); // 16
-    expect(isPlausibleImei("123")).toBe(false);
-    expect(isPlausibleImei("")).toBe(false);
+  it("rejects a 15-digit IMEI with an invalid check digit", () => {
+    expect(hasValidImeiChecksum("490154203237519")).toBe(false);
+    expect(isPlausibleImei("490154203237519")).toBe(false);
+  });
+
+  it("rejects 14-digit, 16-digit, non-digit, and empty values", () => {
+    for (const value of ["49015420323751", "4901542032375180", "12345678901234a", ""]) {
+      expect(isPlausibleImei(value)).toBe(false);
+    }
   });
 });
 
@@ -53,7 +68,6 @@ describe("IMEI status flow (mirrors database functions)", () => {
   it("full lifecycle: issue → sell → return path stays closed for sold units", () => {
     expect(checkTransition("issue", "in_dealer_stock").ok).toBe(true);
     expect(checkTransition("sell", "with_salesman").ok).toBe(true);
-    // A sold unit can never be returned through the scanner flow.
     expect(checkTransition("return", "sold").ok).toBe(false);
   });
 });
