@@ -25,7 +25,7 @@ describe("strict IMEI validation", () => {
   });
 
   it("rejects 14-digit, 16-digit, non-digit, and empty values", () => {
-    for (const value of ["49015420323751", "4901542032375180", "12345678901234a", ""]) {
+    for (const value of ["49015420323751", "4901542032375180", "12345678901234a", "IMEI:490154203237518", ""]) {
       expect(isPlausibleImei(value)).toBe(false);
     }
   });
