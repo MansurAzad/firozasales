@@ -62,6 +62,27 @@ type CameraCapabilities = MediaTrackCapabilities & {
 const SCAN_FORMATS = ["code_128", "code_39", "itf", "codabar"];
 const ZXING_FORMATS = ["Code128", "Code39", "ITF", "Codabar"];
 
+function sharpenImageData(image: ImageData): ImageData {
+  const { data, width, height } = image;
+  const original = new Uint8ClampedArray(data);
+  const stride = width * 4;
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = (y * width + x) * 4;
+      for (let channel = 0; channel < 3; channel += 1) {
+        const value =
+          original[index + channel] * 5 -
+          original[index - 4 + channel] -
+          original[index + 4 + channel] -
+          original[index - stride + channel] -
+          original[index + stride + channel];
+        data[index + channel] = Math.max(0, Math.min(255, value));
+      }
+    }
+  }
+  return image;
+}
+
 function playSuccessBeep() {
   try {
     const AudioContextClass =
@@ -118,6 +139,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
   const lastCodeRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
   const zxingRef = useRef<Promise<ZXingReader> | null>(null);
   const roiCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   checkRef.current = check;
   acceptedRef.current = onAccepted;
   eventRef.current = onScanEvent;
@@ -358,6 +380,20 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
         const cropHeight = Math.max(1, Math.floor(sourceHeight * 0.76));
         const sx = Math.floor((sourceWidth - cropWidth) / 2);
         const sy = Math.floor((sourceHeight - cropHeight) / 2);
+        const baseCanvas = baseCanvasRef.current ?? document.createElement("canvas");
+        baseCanvasRef.current = baseCanvas;
+        baseCanvas.width = cropWidth;
+        baseCanvas.height = cropHeight;
+        const baseContext = baseCanvas.getContext("2d", { willReadFrequently: true });
+        if (!baseContext) return;
+        baseContext.filter = "contrast(1.32) brightness(1.04) grayscale(1)";
+        baseContext.drawImage(video, sx, sy, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        // Apply a light unsharp mask every third frame to improve tiny printed bar edges.
+        if (frameNumber % 3 === 0) {
+          const baseImage = baseContext.getImageData(0, 0, cropWidth, cropHeight);
+          baseContext.putImageData(sharpenImageData(baseImage), 0, 0);
+        }
+
         const canvas = roiCanvasRef.current ?? document.createElement("canvas");
         roiCanvasRef.current = canvas;
         const scale = frameNumber % 3 === 0 ? 2.4 : frameNumber % 2 === 0 ? 1.7 : 1.25;
@@ -366,8 +402,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
         const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) return;
         context.imageSmoothingEnabled = false;
-        context.filter = "contrast(1.28) brightness(1.04) grayscale(1)";
-        context.drawImage(video, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+        context.drawImage(baseCanvas, 0, 0, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
         const image = context.getImageData(0, 0, canvas.width, canvas.height);
         const reader = await loadZXing();
         const results = await reader.readBarcodes(image, {
