@@ -1,5 +1,6 @@
 import { Camera, Keyboard, Lightbulb, Minus, Plus, ScanLine, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import wasmUrl from "zxing-wasm/reader/zxing_reader.wasm?url";
 
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
@@ -295,9 +296,16 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
 
     async function loadZXing() {
       if (!zxingRef.current) {
-        zxingRef.current = import("zxing-wasm/reader").then((module) => ({
-          readBarcodes: module.readBarcodes as ZXingReader["readBarcodes"],
-        }));
+        zxingRef.current = import("zxing-wasm/reader").then(async (module) => {
+          await module.prepareZXingModule({
+            overrides: {
+              locateFile: (path: string, prefix: string) =>
+                path.endsWith(".wasm") ? wasmUrl : prefix + path,
+            },
+            fireImmediately: true,
+          });
+          return { readBarcodes: module.readBarcodes as ZXingReader["readBarcodes"] };
+        });
       }
       return zxingRef.current;
     }
