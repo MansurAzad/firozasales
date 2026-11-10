@@ -155,7 +155,12 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
     const code = normalizeImei(raw);
     if (!code) return;
     const now = Date.now();
-    if (code === lastCodeRef.current.code && now - lastCodeRef.current.at < 900) return;
+    // Suppress repeated camera frames briefly, but never hide a deliberate USB/manual rescan.
+    if (
+      (source === "mobile_camera" || source === "webcam") &&
+      code === lastCodeRef.current.code &&
+      now - lastCodeRef.current.at < 1300
+    ) return;
     lastCodeRef.current = { code, at: now };
 
     if (!/^\d{15}$/.test(code)) {
