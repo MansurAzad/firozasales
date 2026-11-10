@@ -13,12 +13,12 @@ const ALLOWED: Record<ImeiAction, ImeiStatus[]> = {
 };
 
 export function normalizeImei(raw: string): string {
-  return (raw || "").replace(/\\D/g, "");
+  return (raw || "").replace(/\D/g, "");
 }
 
 /** Validate a standard 15-digit IMEI using its Luhn check digit. */
 export function hasValidImeiChecksum(value: string): boolean {
-  if (!/^\\d{15}$/.test(value)) return false;
+  if (!/^\d{15}$/.test(value)) return false;
 
   let sum = 0;
   for (let index = 0; index < value.length; index += 1) {
