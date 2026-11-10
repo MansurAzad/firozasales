@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatBDT, saleDue, toNumber } from "./money";
+import { expectedCashOnHand, formatBDT, saleDue, toNumber } from "./money";
 
 describe("money format", () => {
   it("shows the ৳ sign with English digits and western grouping", () => {
@@ -31,5 +31,20 @@ describe("toNumber", () => {
     expect(toNumber("12500")).toBe(12500);
     expect(toNumber(null)).toBe(0);
     expect(toNumber(undefined)).toBe(0);
+  });
+});
+
+
+describe("expected SR cash", () => {
+  it("subtracts cash deposits and cash refunds from cash collected", () => {
+    expect(expectedCashOnHand(12000, 5000, 1500)).toBe(5500);
+  });
+
+  it("does not deduct non-cash dealer credit notes", () => {
+    expect(expectedCashOnHand(12000, 5000, 0)).toBe(7000);
+  });
+
+  it("preserves a negative discrepancy instead of hiding it", () => {
+    expect(expectedCashOnHand(3000, 3500, 0)).toBe(-500);
   });
 });
