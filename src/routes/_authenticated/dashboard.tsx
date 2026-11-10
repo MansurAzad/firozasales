@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { useMyRole } from "@/lib/role";
 import { useLang } from "@/lib/i18n";
-import { formatBDT, toNumber } from "@/lib/money";
+import { expectedCashOnHand, formatBDT, toNumber } from "@/lib/money";
 import {
   fetchAdminData,
   fetchSalesmanData,
@@ -86,7 +86,7 @@ function AdminDashboard({ userId }: { userId: string }) {
     d.issueItems.reduce((a, i) => a + i.quantity, 0) -
     d.saleItems.reduce((a, i) => a + i.quantity, 0) -
     returned;
-  const cashOnHand = cash - deposited - refunds;
+  const cashOnHand = expectedCashOnHand(cash, deposited, refunds);
   const outstandingDues = dealerDues(d.sales, d.payments, d.dealerReturns);
   const outOfStock = d.products.filter(
     (product) =>
