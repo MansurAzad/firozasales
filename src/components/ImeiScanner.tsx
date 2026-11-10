@@ -392,11 +392,19 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
       frameNumber += 1;
       try {
         if (nativeDetector) {
-          const found = await nativeDetector.detect(video);
-          if (found[0]?.rawValue) {
-            const facingMode = streamRef.current?.getVideoTracks()[0]?.getSettings().facingMode;
-            await handleCode(found[0].rawValue, facingMode === "environment" ? "mobile_camera" : "webcam");
-            return;
+          try {
+            const found = await nativeDetector.detect(video);
+            if (found[0]?.rawValue) {
+              const facingMode = streamRef.current?.getVideoTracks()[0]?.getSettings().facingMode;
+              await handleCode(found[0].rawValue, facingMode === "environment" ? "mobile_camera" : "webcam");
+              return;
+            }
+          } catch {
+            // Some browsers expose BarcodeDetector but fail on specific camera frames.
+            // Disable the native path and continue with the ZXing-WASM fallback.
+            nativeDetector = null;
+            useNative = false;
+            setEngine("ZXing-C++ WASM");
           }
         }
         // Crop a wide, adjustable region, then upscale it for tiny printed labels.
