@@ -140,3 +140,10 @@ These are proposed entities, not existing tables. Final names and constraints wi
 - **Production safety:** no production database was connected to or modified; no migration was applied; no branch was merged or deployed.
 
 This document is a repository-derived mapping and implementation plan, not a claim that the deployed Supabase database has been proven identical to the checked-in migrations.
+
+
+## 10. Live Supabase project identity check
+
+The checked-in `supabase/config.toml` declares project ref `kjfzlecurkvvkcwlidxc`. The connected Supabase account's project listing did not include that ref; it listed other projects, including one named `mobilederp`, but that project has a different ref. A read-only project lookup for the configured ref was denied by the connected account.
+
+**Conclusion:** do not introspect or modify another listed project as a substitute. The deployed database's actual tables, migration history, policies and functions remain unverified until the owner connects the Supabase project whose ref matches `kjfzlecurkvvkcwlidxc` or confirms the correct project mapping. No SQL query or migration was run against any project.
