@@ -1,10 +1,10 @@
-import { Camera, Keyboard } from "lucide-react";
+import { Barcode, Camera, Keyboard } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 import { useLang } from "@/lib/i18n";
-import { isPlausibleImei, normalizeImei } from "@/lib/imei";
+import { extractImeiCandidates, isPlausibleImei, normalizeImei } from "@/lib/imei";
 
 export interface ImeiCheckResult {
   ok: boolean;
@@ -20,18 +20,20 @@ interface ImeiScannerProps {
 }
 
 /**
- * Barcode scanner using html5-qrcode. The camera only turns on when the user
- * presses the scan button. Wrong/unknown IMEI → phone vibrates + red signal;
- * a valid one → green signal, no vibration.
+ * IMEI scanner for camera, USB/Bluetooth keyboard-wedge scanners and manual entry.
+ * Hardware scanners behave like keyboards and usually send Enter after a scan.
  */
 export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
   const { t } = useLang();
   const [scanning, setScanning] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [hardwareOpen, setHardwareOpen] = useState(false);
   const [manual, setManual] = useState("");
+  const [hardwareInput, setHardwareInput] = useState("");
   const [signal, setSignal] = useState<ImeiCheckResult | null>(null);
   const regionId = `imei-${useId().replace(/:/g, "")}`;
   const busyRef = useRef(false);
+  const hardwareInputRef = useRef<HTMLInputElement>(null);
   const checkRef = useRef(check);
   const acceptedRef = useRef(onAccepted);
   checkRef.current = check;
@@ -47,15 +49,26 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
 
   async function handleCode(raw: string) {
     if (busyRef.current) return;
-    const code = normalizeImei(raw);
+    const candidates = extractImeiCandidates(raw);
+    if (candidates.length !== 1) {
+      const result = {
+        ok: false,
+        message: candidates.length > 1 ? "একটি Barcode-এ একাধিক IMEI পাওয়া গেছে। একটি IMEI আলাদাভাবে Scan করুন।" : t("imei_unknown"),
+      };
+      setSignal(result);
+      vibrateError();
+      return;
+    }
+
+    const code = normalizeImei(candidates[0]);
     const now = Date.now();
     if (code === lastCodeRef.current.code && now - lastCodeRef.current.at < 2000) {
-      return; // debounce repeated scans of the same barcode
+      return;
     }
     lastCodeRef.current = { code, at: now };
 
     if (!isPlausibleImei(code)) {
-      const result = { ok: false, message: t("imei_unknown") };
+      const result = { ok: false, message: "IMEI Format বা Check Digit সঠিক নয়" };
       setSignal(result);
       vibrateError();
       return;
@@ -67,8 +80,9 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
       result = await checkRef.current(code);
     } catch {
       result = { ok: false, message: t("imei_unknown") };
+    } finally {
+      busyRef.current = false;
     }
-    busyRef.current = false;
     setSignal(result);
     if (result.ok) {
       acceptedRef.current?.(code);
@@ -79,6 +93,11 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
 
   const handlersRef = useRef({ handleCode, t });
   handlersRef.current = { handleCode, t };
+
+  useEffect(() => {
+    if (!hardwareOpen) return;
+    hardwareInputRef.current?.focus();
+  }, [hardwareOpen]);
 
   useEffect(() => {
     if (!scanning) return;
@@ -103,8 +122,15 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+            Html5QrcodeSupportedFormats.PDF_417,
           ],
           verbose: false,
         });
@@ -150,6 +176,13 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
     setScanning(false);
   }
 
+  function submitHardwareScan() {
+    const value = hardwareInput;
+    setHardwareInput("");
+    void handleCode(value);
+    requestAnimationFrame(() => hardwareInputRef.current?.focus());
+  }
+
   return (
     <div className="rounded-xl border border-border bg-secondary/40 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -164,14 +197,56 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
         )}
         <Button
           type="button"
+          onClick={() => {
+            setHardwareOpen((v) => !v);
+            setSignal(null);
+          }}
+          className="btn-outline btn-sm"
+          aria-expanded={hardwareOpen}
+        >
+          <Barcode className="h-4 w-4" /> USB / Bluetooth
+        </Button>
+        <Button
+          type="button"
           onClick={() => setManualOpen((v) => !v)}
           className="btn-outline btn-sm"
+          aria-expanded={manualOpen}
         >
           <Keyboard className="h-4 w-4" /> {t("manual_entry")}
         </Button>
       </div>
 
       {hint ? <p className="mb-2 text-xs text-muted-foreground">{hint}</p> : null}
+
+      {hardwareOpen ? (
+        <div className="mb-2 rounded-lg border border-border bg-background p-2">
+          <label htmlFor={`${regionId}-hardware`} className="mb-1 block text-xs font-medium">
+            Hardware Barcode Scanner — Scan করে Enter চাপুন
+          </label>
+          <input
+            ref={hardwareInputRef}
+            id={`${regionId}-hardware`}
+            className="input w-full"
+            value={hardwareInput}
+            onChange={(e) => setHardwareInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitHardwareScan();
+              }
+            }}
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            inputMode="none"
+            placeholder="USB / Bluetooth Scanner Ready"
+            aria-label="USB / Bluetooth barcode scanner input"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Scanner-টি Keyboard-এর মতো কাজ করবে। Scan Input-এ Focus রেখে ধারাবাহিকভাবে Scan করুন।
+          </p>
+        </div>
+      ) : null}
 
       {scanning ? (
         <div className="mb-2">
