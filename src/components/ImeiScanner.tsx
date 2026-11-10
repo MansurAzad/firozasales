@@ -122,11 +122,9 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
   eventRef.current = onScanEvent;
 
   const record = useCallback((event: ImeiScanEvent) => {
-    try {
-      void eventRef.current?.(event);
-    } catch (error) {
+    void Promise.resolve(eventRef.current?.(event)).catch((error) => {
       console.warn("Could not save IMEI scan history", error);
-    }
+    });
   }, []);
 
   const handleCode = useCallback(async (raw: string, source: ImeiScanSource) => {
@@ -203,8 +201,11 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
   }, []);
 
   const applyCameraControls = useCallback(async (track: MediaStreamTrack) => {
-    const capabilities = track.getCapabilities() as CameraCapabilities;
-    const settings = track.getSettings();
+    const capabilities =
+      typeof track.getCapabilities === "function"
+        ? (track.getCapabilities() as CameraCapabilities)
+        : ({} as CameraCapabilities);
+    const settings = track.getSettings() as MediaTrackSettings & { zoom?: number };
     const zoomCap = capabilities.zoom;
     if (zoomCap) {
       setZoomRange({ min: zoomCap.min, max: zoomCap.max, step: zoomCap.step ?? 0.1 });
