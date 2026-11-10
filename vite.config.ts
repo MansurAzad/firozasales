@@ -13,6 +13,7 @@ const clientDir = process.env['NITRO_PRESET'] === 'vercel' && !process.env['LOVA
 
 export default defineConfig({
   vite: {
+    optimizeDeps: { exclude: ["zxing-wasm"] },
     plugins: [VitePWA({
       integration: { closeBundleOrder: 'post' },
       strategies: 'generateSW', filename: 'sw.js', registerType: 'autoUpdate', injectRegister: null,
