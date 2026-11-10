@@ -10,7 +10,7 @@ import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { findImei } from "@/lib/offline";
-import { formatBDT, toNumber } from "@/lib/money";
+import { expectedCashOnHand, formatBDT, toNumber } from "@/lib/money";
 import { displayBusinessDate } from "@/lib/business-time";
 import { ListPagination } from "@/components/ListPagination";
 import {
@@ -477,6 +477,9 @@ function AdminSettlement() {
               sales.reduce((a, x) => a + toNumber(x.paid_amount), 0) +
               payments.reduce((a, x) => a + toNumber(x.amount), 0);
             const dep = deposits.reduce((a, x) => a + toNumber(x.amount), 0);
+            const refunds = d.dealerReturns
+              .filter((x) => x.salesman_id === s.id)
+              .reduce((a, x) => a + toNumber(x.refund_amount), 0);
             const withStock = issuedBySalesman(d).get(s.id) ?? 0;
             return (
               <div key={s.id} className="row">
@@ -488,7 +491,7 @@ function AdminSettlement() {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-warning-foreground">
-                    {t("expected_cash")}: {formatBDT(Math.max(0, cash - dep))}
+                    {t("expected_cash")}: {formatBDT(expectedCashOnHand(cash, dep, refunds))}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {t("dash_deposited")}: {formatBDT(dep)}
