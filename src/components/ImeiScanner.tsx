@@ -503,7 +503,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
       ) : null}
 
       {signal ? (
-        <div role="status" aria-live="polite" className={\`rounded-lg px-3 py-2 text-sm font-semibold \${signal.ok ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}\`}>
+        <div role="status" aria-live="polite" className={`rounded-lg px-3 py-2 text-sm font-semibold ${signal.ok ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}`}>
           {signal.message}
         </div>
       ) : null}
