@@ -444,7 +444,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
       <div className={`space-y-2 ${scanning ? "" : "hidden"}`}>
           <div className="relative overflow-hidden rounded-lg bg-black">
             <video ref={videoRef} className="block max-h-[420px] w-full object-contain" playsInline muted />
-            <div className="pointer-events-none absolute inset-x-2 top-1/2 h-[76%] -translate-y-1/2 rounded-md border-2 border-emerald-400/90 shadow-[0_0_0_999px_rgba(0,0,0,0.25)]" />
+            <div className="pointer-events-none absolute top-1/2 h-[76%] -translate-y-1/2 rounded-md border-2 border-emerald-400/90 shadow-[0_0_0_999px_rgba(0,0,0,0.25)]" style={{ left: `${(100 - roiPercent) / 2}%`, width: `${roiPercent}%` }} />
             <div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-[10px] text-white">{engine}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
