@@ -10,6 +10,7 @@ import { ImeiScanner } from "@/components/ImeiScanner";
 import { useLang } from "@/lib/i18n";
 import { useMyRole } from "@/lib/role";
 import { findImei } from "@/lib/offline";
+import { saveImeiScanHistory } from "@/lib/imei-history";
 import { companyStock } from "@/lib/inventory";
 import { displayBusinessDate } from "@/lib/business-time";
 import { ListPagination } from "@/components/ListPagination";
@@ -231,6 +232,7 @@ function StockIssuePage() {
                 <ImeiScanner
                   hint={t("scan_imei_stock")}
                   check={(code) => checkImei(code, item)}
+                  onScanEvent={(event) => saveImeiScanHistory(event, item.product.id)}
                   onAccepted={(code) =>
                     findImei(code).then(({ data: unit }) => {
                       if (unit) {
