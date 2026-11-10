@@ -77,6 +77,7 @@ function playSuccessBeep() {
     gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.12);
     oscillator.connect(gain);
     gain.connect(context.destination);
+    void context.resume();
     oscillator.start();
     oscillator.stop(context.currentTime + 0.13);
     oscillator.onended = () => void context.close();
@@ -336,7 +337,8 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
         if (nativeDetector) {
           const found = await nativeDetector.detect(video);
           if (found[0]?.rawValue) {
-            await handleCode(found[0].rawValue, "mobile_camera");
+            const facingMode = streamRef.current?.getVideoTracks()[0]?.getSettings().facingMode;
+            await handleCode(found[0].rawValue, facingMode === "environment" ? "mobile_camera" : "webcam");
             return;
           }
         }
@@ -366,7 +368,10 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
           tryInvert: true,
           maxNumberOfSymbols: 1,
         });
-        if (results[0]?.text) await handleCode(results[0].text, "mobile_camera");
+        if (results[0]?.text) {
+          const facingMode = streamRef.current?.getVideoTracks()[0]?.getSettings().facingMode;
+          await handleCode(results[0].text, facingMode === "environment" ? "mobile_camera" : "webcam");
+        }
       } catch {
         // A bad frame is normal while autofocus/exposure settles; keep sampling.
       } finally {
@@ -435,8 +440,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
         </p>
       </div>
 
-      {scanning ? (
-        <div className="space-y-2">
+      <div className={`space-y-2 ${scanning ? "" : "hidden"}`}>
           <div className="relative overflow-hidden rounded-lg bg-black">
             <video ref={videoRef} className="block max-h-[420px] w-full object-contain" playsInline muted />
             <div className="pointer-events-none absolute inset-x-2 top-1/2 h-[76%] -translate-y-1/2 rounded-md border-2 border-emerald-400/90 shadow-[0_0_0_999px_rgba(0,0,0,0.25)]" />
@@ -472,8 +476,7 @@ export function ImeiScanner({ check, onAccepted, onScanEvent, hint }: ImeiScanne
             </label>
           </div>
           <p className="text-xs text-muted-foreground">{bn ? "ক্যামেরা: 1080p আদর্শ; ডিভাইস সমর্থন করলে continuous autofocus, zoom ও torch চালু হবে।" : "Camera: 1080p ideal; continuous autofocus, zoom and torch are enabled when supported."}</p>
-        </div>
-      ) : null}
+      </div>
 
       {manualOpen ? (
         <div className="flex gap-2">
