@@ -14,7 +14,7 @@ const createSchema = z.object({
  */
 export const createSalesmanAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => createSchema.parse(input))
+  .validator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
@@ -40,7 +40,7 @@ export const createSalesmanAccount = createServerFn({ method: "POST" })
 
 export const resetSalesmanPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => {
+  .validator((input: unknown) => {
     // Fixed messages prevent validation errors from echoing password input.
     const parsed = z
       .object({ userId: z.string().uuid(), password: z.string().min(8).max(128) })
