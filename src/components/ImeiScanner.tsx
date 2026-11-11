@@ -60,7 +60,9 @@ export function ImeiScanner({ check, onAccepted, hint }: ImeiScannerProps) {
       return;
     }
 
-    const code = normalizeImei(candidates[0]);
+    const candidate = candidates[0];
+    if (!candidate) return;
+    const code = normalizeImei(candidate);
     const now = Date.now();
     if (code === lastCodeRef.current.code && now - lastCodeRef.current.at < 2000) {
       return;
