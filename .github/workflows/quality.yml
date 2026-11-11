@@ -39,5 +39,5 @@ jobs:
       - name: Unit tests
         run: bun run test
 
-      - name: Production build
-        run: bun run build
+      - name: Production build (Vercel preset)
+        run: NITRO_PRESET=vercel bun run build
