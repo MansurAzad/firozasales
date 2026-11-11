@@ -36,15 +36,17 @@ export function extractImeiCandidates(raw: string): string[] {
 
   // For labelled/structured payloads, accept only isolated 14–16 digit tokens.
   const matches = [...value.matchAll(/(?:^|[^\d])(\d{14,16})(?!\d)/g)]
-    .map((match) => match[1])
-    .filter(Boolean);
+    .flatMap((match) => {
+      const candidate = match[1];
+      return candidate ? [candidate] : [];
+    });
   return [...new Set(matches)];
 }
 
 /** Return a normalized value only when the source contains exactly one candidate. */
 export function normalizeImei(raw: string): string {
   const candidates = extractImeiCandidates(raw);
-  return candidates.length === 1 ? candidates[0] : "";
+  return candidates.length === 1 ? (candidates[0] ?? "") : "";
 }
 
 /** Standard Luhn check for a 15-digit IMEI. */
